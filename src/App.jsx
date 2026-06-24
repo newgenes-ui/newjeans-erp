@@ -70,8 +70,8 @@ export default function App() {
     if (currentVersion !== DB_VERSION) {
       localStorage.removeItem('nj_items');
       localStorage.removeItem('nj_partners');
-      localStorage.removeItem('nj_sales');
-      localStorage.removeItem('nj_purchases');
+      localStorage.removeItem('nj_sales_v2');
+      localStorage.removeItem('nj_purchases_v2');
       localStorage.removeItem('nj_tax_invoices');
       localStorage.removeItem('nj_bank_tx');
       localStorage.removeItem('nj_card_sales');
@@ -112,12 +112,12 @@ export default function App() {
   });
 
   const [sales, setSales] = useState(() => {
-    const local = localStorage.getItem('nj_sales');
+    const local = localStorage.getItem('nj_sales_v2');
     return local ? JSON.parse(local) : initialSales;
   });
 
   const [purchases, setPurchases] = useState(() => {
-    const local = localStorage.getItem('nj_purchases');
+    const local = localStorage.getItem('nj_purchases_v2');
     return local ? JSON.parse(local) : initialPurchases;
   });
 
@@ -172,11 +172,11 @@ export default function App() {
   }, [partners]);
 
   useEffect(() => {
-    localStorage.setItem('nj_sales', JSON.stringify(sales));
+    localStorage.setItem('nj_sales_v2', JSON.stringify(sales));
   }, [sales]);
 
   useEffect(() => {
-    localStorage.setItem('nj_purchases', JSON.stringify(purchases));
+    localStorage.setItem('nj_purchases_v2', JSON.stringify(purchases));
   }, [purchases]);
 
   useEffect(() => {
