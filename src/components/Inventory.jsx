@@ -31,6 +31,7 @@ export default function Inventory({
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
+  const [salesSearchQuery, setSalesSearchQuery] = useState('');
 
   // Pagination & Sorting States for Items
   const [currentPage, setCurrentPage] = useState(1);
@@ -694,7 +695,15 @@ export default function Inventory({
         <div className="panel-card">
           <div className="panel-header">
             <h2 className="panel-title">판매 매출 대장 (Sales Ledger)</h2>
-            <div className="btn-group">
+            <div className="search-filter-bar">
+              <input 
+                type="text" 
+                className="form-control" 
+                placeholder="거래처명, 품목명, 사원 검색..." 
+                value={salesSearchQuery}
+                onChange={(e) => setSalesSearchQuery(e.target.value)}
+                style={{ width: '220px' }}
+              />
               <button 
                 className="btn btn-primary"
                 onClick={() => {
@@ -714,12 +723,6 @@ export default function Inventory({
                 }}
               >
                 + 판매 등록 (출고)
-              </button>
-              <button 
-                className="btn btn-secondary"
-                onClick={handleImportDesktopSales}
-              >
-                📂 바탕화면 판매조회 가져오기
               </button>
             </div>
           </div>
@@ -745,14 +748,26 @@ export default function Inventory({
                 </tr>
               </thead>
               <tbody>
-                {sales.length === 0 ? (
-                  <tr>
-                    <td colSpan="14" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
-                      등록된 판매 거래 내역이 없습니다.
-                    </td>
-                  </tr>
-                ) : (
-                  sales.map(sale => (
+                {(() => {
+                  const filteredSales = sales.filter(sale => 
+                    (sale.customer || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
+                    (sale.partnerCode || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
+                    (sale.itemName || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
+                    (sale.employee || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
+                    (sale.note || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
+                    (sale.paymentMethod || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
+                    (sale.date || '').toLowerCase().includes(salesSearchQuery.toLowerCase())
+                  );
+                  if (filteredSales.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan="14" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                          검색 결과 또는 등록된 판매 거래 내역이 없습니다.
+                        </td>
+                      </tr>
+                    );
+                  }
+                  return filteredSales.map(sale => (
                     <tr key={sale.id}>
                       <td style={{ textAlign: 'center' }}><input type="checkbox" /></td>
                       <td style={{ fontWeight: '500' }}>
@@ -783,8 +798,8 @@ export default function Inventory({
                         </button>
                       </td>
                     </tr>
-                  ))
-                )}
+                  ));
+                })()}
               </tbody>
             </table>
           </div>
