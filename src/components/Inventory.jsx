@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import initialPartners from '../data/partners.json';
 import initialItems from '../data/items.json';
+import initialSales from '../data/sales.json';
+import initialPurchases from '../data/purchases.json';
 
 export default function Inventory({ 
   items, 
@@ -229,6 +231,23 @@ export default function Inventory({
       alert('품목 데이터 1417건이 성공적으로 등록되었습니다!');
     }
   };
+
+  const handleImportDesktopSales = () => {
+    if (confirm('바탕화면의 판매조회.csv 파일 데이터(117건)를 가져오시겠습니까? 기존 데이터는 모두 대체됩니다.')) {
+      setSales(initialSales);
+      logActivity('재고', '바탕화면 판매조회.csv 데이터 가져오기 완료 (117건)');
+      alert('판매 데이터 117건이 성공적으로 등록되었습니다!');
+    }
+  };
+
+  const handleImportDesktopPurchases = () => {
+    if (confirm('바탕화면의 구매조회.csv 파일 데이터(139건)를 가져오시겠습니까? 기존 데이터는 모두 대체됩니다.')) {
+      setPurchases(initialPurchases);
+      logActivity('재고', '바탕화면 구매조회.csv 데이터 가져오기 완료 (139건)');
+      alert('구매 데이터 139건이 성공적으로 등록되었습니다!');
+    }
+  };
+
 
   const triggerEditPartner = (partner) => {
     setEditingPartner(partner);
@@ -675,26 +694,34 @@ export default function Inventory({
         <div className="panel-card">
           <div className="panel-header">
             <h2 className="panel-title">판매 매출 대장 (Sales Ledger)</h2>
-            <button 
-              className="btn btn-primary"
-              onClick={() => {
-                const defaultClientName = partners.length > 0 ? partners[0].name : '';
-                const defaultClient = partners.length > 0 ? partners[0] : null;
+            <div className="btn-group">
+              <button 
+                className="btn btn-primary"
+                onClick={() => {
+                  const defaultClientName = partners.length > 0 ? partners[0].name : '';
+                  const defaultClient = partners.length > 0 ? partners[0] : null;
 
-                setSalesForm(prev => ({
-                  ...prev,
-                  customer: defaultClientName,
-                  partnerCode: defaultClient ? defaultClient.code : '',
-                  purchasePlace: defaultClientName,
-                  date: new Date().toISOString().substring(0, 10),
-                  employee: '양유지',
-                  isAccountReflected: true
-                }));
-                setShowSalesModal(true);
-              }}
-            >
-              + 판매 등록 (출고)
-            </button>
+                  setSalesForm(prev => ({
+                    ...prev,
+                    customer: defaultClientName,
+                    partnerCode: defaultClient ? defaultClient.code : '',
+                    purchasePlace: defaultClientName,
+                    date: new Date().toISOString().substring(0, 10),
+                    employee: '양유지',
+                    isAccountReflected: true
+                  }));
+                  setShowSalesModal(true);
+                }}
+              >
+                + 판매 등록 (출고)
+              </button>
+              <button 
+                className="btn btn-secondary"
+                onClick={handleImportDesktopSales}
+              >
+                📂 바탕화면 판매조회 가져오기
+              </button>
+            </div>
           </div>
 
           <div className="table-responsive">
@@ -769,18 +796,26 @@ export default function Inventory({
         <div className="panel-card">
           <div className="panel-header">
             <h2 className="panel-title">구매 매입 대장 (Purchase Ledger)</h2>
-            <button 
-              className="btn btn-primary"
-              onClick={() => {
-                setPurchaseForm(prev => ({
-                  ...prev,
-                  vendor: partners.length > 0 ? partners[0].name : ''
-                }));
-                setShowPurchaseModal(true);
-              }}
-            >
-              + 구매 등록 (입고)
-            </button>
+            <div className="btn-group">
+              <button 
+                className="btn btn-primary"
+                onClick={() => {
+                  setPurchaseForm(prev => ({
+                    ...prev,
+                    vendor: partners.length > 0 ? partners[0].name : ''
+                  }));
+                  setShowPurchaseModal(true);
+                }}
+              >
+                + 구매 등록 (입고)
+              </button>
+              <button 
+                className="btn btn-secondary"
+                onClick={handleImportDesktopPurchases}
+              >
+                📂 바탕화면 구매조회 가져오기
+              </button>
+            </div>
           </div>
 
           <div className="table-responsive">
