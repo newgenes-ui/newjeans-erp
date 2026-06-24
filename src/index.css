@@ -869,10 +869,10 @@ body.dark-mode .chart-bar-fill {
   0% { height: 0%; }
 }
 
-/* Korean Tax Invoice Styling (세금계산서 전용) */
+/* Korean Tax Invoice Styling (세금계산서 전용 - 파란색 공급받는자용 테마) */
 .tax-invoice-container {
   font-family: 'Noto Sans KR', sans-serif;
-  border: 2px solid #ff4d4d; /* Red border for supplier copy */
+  border: 2px solid #3b74b8; /* Blue border for receiver copy */
   background: #ffffff;
   color: #000000;
   padding: 16px;
@@ -882,16 +882,16 @@ body.dark-mode .chart-bar-fill {
 }
 
 .tax-invoice-blue {
-  border-color: #3b74b8; /* Blue copy */
+  border-color: #3b74b8;
 }
 
 .invoice-title {
   text-align: center;
   font-size: 20px;
   font-weight: 900;
-  color: #ff0000;
+  color: #1a56db;
   letter-spacing: 4px;
-  border-bottom: 2px double #ff0000;
+  border-bottom: 2px double #1a56db;
   padding-bottom: 8px;
   margin-bottom: 12px;
 }
@@ -903,38 +903,41 @@ body.dark-mode .chart-bar-fill {
 }
 
 .tax-invoice-table td {
-  border: 1px solid #ff4d4d;
-  padding: 5px;
+  border: 1px solid #3b74b8;
+  padding: 4px;
   color: #000000;
   text-align: center;
   font-size: 11px;
 }
 
 .invoice-section-header {
-  background-color: #ffe6e6;
+  background-color: #e6f0ff;
   font-weight: 700;
-  width: 8%;
-  color: #ff0000;
+  color: #1a56db;
 }
 
 .invoice-label {
-  background-color: #ffeef0;
+  background-color: #f0f7ff;
   font-weight: 500;
-  width: 12%;
+  color: #1a56db;
 }
 
 .invoice-value {
   text-align: left !important;
   padding-left: 8px !important;
-  width: 30%;
+  word-break: break-all;
+  white-space: normal;
 }
 
-.invoice-value-center {
-  text-align: center !important;
+.invoice-value-email {
+  text-align: left !important;
+  padding-left: 4px !important;
+  word-break: break-all;
+  white-space: normal;
 }
 
 .invoice-double-line {
-  border-bottom: 2px double #ff0000 !important;
+  border-bottom: 2px double #1a56db !important;
 }
 
 /* Card details sub-panel */
@@ -1035,3 +1038,124 @@ body.dark-mode .chart-bar-fill {
     font-size: 11px;
   }
 }
+
+/* ECOUNT Style Pagination */
+.erp-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  background: white;
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: var(--radius-md, 6px);
+  width: fit-content;
+}
+
+body.dark-mode .erp-pagination {
+  background: #1a1713;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.erp-pagination .page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.erp-pagination .page-num-btn {
+  font-size: 13px;
+  color: var(--text-secondary);
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.erp-pagination .page-num-btn:hover {
+  background-color: var(--table-row-hover, #f5f3f0);
+  color: var(--text-primary);
+}
+
+.erp-pagination .page-num-btn.active {
+  background-color: var(--primary-blue, #1d4ed8);
+  color: white;
+  font-weight: 600;
+  border-radius: 50%;
+}
+
+.erp-pagination .page-arrow {
+  font-size: 14px;
+  color: var(--text-secondary);
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  font-weight: bold;
+}
+
+.erp-pagination .page-arrow:hover {
+  background-color: var(--table-row-hover, #f5f3f0);
+  color: var(--text-primary);
+}
+
+.erp-pagination .page-go-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-left: 1px solid var(--border-color);
+  padding-left: 12px;
+}
+
+.erp-pagination .page-go-input {
+  width: 50px;
+  height: 26px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  text-align: center;
+  font-size: 13px;
+  outline: none;
+  background: white;
+  color: var(--text-primary);
+}
+
+body.dark-mode .erp-pagination .page-go-input {
+  background: #2a2520;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Clickable table headers */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+
+.sortable-header:hover {
+  color: var(--text-primary) !important;
+}
+
+/* Clickable item code link */
+.link-text {
+  color: var(--primary-blue, #1d4ed8);
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: all 0.15s ease;
+}
+
+.link-text:hover {
+  border-bottom-color: var(--primary-blue, #1d4ed8);
+  filter: brightness(1.2);
+}
+

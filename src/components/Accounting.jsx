@@ -939,138 +939,320 @@ export default function Accounting({
       )}
 
       {/* --- MODAL 3: 전자세금계산서 뷰어 (국세청 양식) --- */}
-      {showInvoiceModal && selectedInvoice && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '850px', background: '#fcfcfc' }}>
-            <div className="modal-header print-hide" style={{ background: '#f3f4f6', borderColor: '#e5e7eb' }}>
-              <h2 className="panel-title" style={{ color: '#1f2937' }}>전자세금계산서 인쇄 및 발행조회</h2>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {selectedInvoice.status === '작성' && (
-                  <button 
-                    className="btn btn-primary" 
-                    onClick={() => transmitToNts(selectedInvoice.id)}
-                  >
-                    국세청 전송 발행
-                  </button>
-                )}
-                <button className="btn btn-secondary" onClick={() => window.print()}>인쇄하기 (Print)</button>
-                <button className="modal-close" style={{ color: '#1f2937' }} onClick={() => setShowInvoiceModal(false)}>&times;</button>
-              </div>
-            </div>
+      {showInvoiceModal && selectedInvoice && (() => {
+        const invoiceDate = selectedInvoice.date || '';
+        const dateYear = invoiceDate.substring(0, 4) || '2026';
+        const dateMonth = invoiceDate.substring(5, 7) || '06';
+        const dateDay = invoiceDate.substring(8, 10) || '24';
 
-            <div className="modal-body" style={{ padding: '30px 20px', background: '#ffffff' }}>
-              
-              {/* Official Tax Invoice Red Table Container */}
-              <div className="tax-invoice-container">
-                <div className="invoice-title">전 자 세 금 계 산 서</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '10px' }}>
-                  <div>(공급자 보관용 / 수탁 발행용)</div>
-                  <div>승인 번호: {selectedInvoice.status === '발행' ? selectedInvoice.id : '임시 작성중 (미전송)'}</div>
+        const getDigits = (amount, length) => {
+          const str = Math.round(amount).toString();
+          const arr = Array(length).fill('');
+          for (let i = 0; i < str.length; i++) {
+            if (i < length) {
+              arr[length - 1 - i] = str[str.length - 1 - i];
+            }
+          }
+          return arr;
+        };
+
+        const supplyDigits = getDigits(selectedInvoice.supplyValue, 12);
+        const vatDigits = getDigits(selectedInvoice.vat, 10);
+
+        // --- DYNAMIC RUNTIME LOOKUP FOR BUYER TO PREVENT STALE DATA ---
+        const normalize = (val) => String(val || '').replace(/[\s-]/g, '');
+        const currentBuyer = partners.find(p => {
+          const pName = normalize(p.name);
+          const pCode = normalize(p.code);
+          const invBuyerName = normalize(selectedInvoice.buyerName);
+          const invBuyerRegNum = normalize(selectedInvoice.buyerRegNum);
+          const invPartnerCode = normalize(selectedInvoice.partnerCode);
+
+          return (pName && invBuyerName && pName === invBuyerName) || 
+                 (pCode && invBuyerRegNum && pCode === invBuyerRegNum) ||
+                 (pCode && invPartnerCode && pCode === invPartnerCode);
+        });
+
+        // Resolve buyer details
+        const resolvedBuyerName = selectedInvoice.buyerName || (currentBuyer ? currentBuyer.name : '');
+        const resolvedBuyerRegNum = currentBuyer ? currentBuyer.code : (selectedInvoice.buyerRegNum || '');
+        const resolvedBuyerOwner = currentBuyer ? currentBuyer.owner : (selectedInvoice.buyerOwner || '');
+        const resolvedBuyerAddress = currentBuyer ? currentBuyer.address : (selectedInvoice.buyerAddress || '');
+        const resolvedBuyerBizType = currentBuyer ? currentBuyer.bizType : (selectedInvoice.buyerBizType || '');
+        const resolvedBuyerBizItem = currentBuyer ? currentBuyer.bizItem : (selectedInvoice.buyerBizItem || '');
+        const resolvedBuyerEmail = currentBuyer ? currentBuyer.email : (selectedInvoice.buyerEmail || '');
+
+        // Find item spec dynamically
+        const currentItem = items.find(i => i.name === selectedInvoice.itemName || i.code === selectedInvoice.itemCode);
+        const resolvedSpec = currentItem ? currentItem.spec : '';
+
+        return (
+          <div className="modal-overlay">
+            <div className="modal-content" style={{ maxWidth: '850px', background: '#fcfcfc' }}>
+              <div className="modal-header print-hide" style={{ background: '#f3f4f6', borderColor: '#e5e7eb' }}>
+                <h2 className="panel-title" style={{ color: '#1f2937' }}>전자세금계산서 인쇄 및 발행조회</h2>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {selectedInvoice.status === '작성' && (
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={() => transmitToNts(selectedInvoice.id)}
+                    >
+                      국세청 전송 발행
+                    </button>
+                  )}
+                  <button className="btn btn-secondary" onClick={() => window.print()}>인쇄하기 (Print)</button>
+                  <button className="modal-close" style={{ color: '#1f2937' }} onClick={() => setShowInvoiceModal(false)}>&times;</button>
                 </div>
+              </div>
 
-                <table className="tax-invoice-table">
-                  <tbody>
-                    {/* 공급자 Section */}
-                    <tr>
-                      <td rowspan="4" className="invoice-section-header">공<br />급<br />자</td>
-                      <td className="invoice-label">등록번호</td>
-                      <td colspan="3" style={{ fontWeight: 'bold', fontSize: '12px' }}>{selectedInvoice.supplierRegNum}</td>
-                      <td rowspan="4" className="invoice-section-header" style={{ backgroundColor: '#e6f0ff', color: '#1a56db', borderLeft: '2px solid #ff4d4d' }}>공<br />급<br />받<br />는<br />자</td>
-                      <td className="invoice-label">등록번호</td>
-                      <td colspan="3" style={{ fontWeight: 'bold', fontSize: '12px' }}>{selectedInvoice.buyerRegNum}</td>
-                    </tr>
-                    <tr>
-                      <td className="invoice-label">상호(법인명)</td>
-                      <td className="invoice-value">{selectedInvoice.supplierName}</td>
-                      <td className="invoice-label">성명(대표)</td>
-                      <td>{selectedInvoice.supplierOwner} (인)</td>
-                      <td className="invoice-label">상호(법인명)</td>
-                      <td className="invoice-value">{selectedInvoice.buyerName}</td>
-                      <td className="invoice-label">성명(대표)</td>
-                      <td>홍길동</td>
-                    </tr>
-                    <tr>
-                      <td className="invoice-label">사업장주소</td>
-                      <td colspan="3" className="invoice-value">서울특별시 마포구 독막로 311 (창전동, 하이브빌딩)</td>
-                      <td className="invoice-label">사업장주소</td>
-                      <td colspan="3" className="invoice-value">대한민국 서울시 어딘가</td>
-                    </tr>
-                    <tr>
-                      <td className="invoice-label">업태 / 종목</td>
-                      <td className="invoice-value">서비스 / 음악제작, 매니지먼트</td>
-                      <td className="invoice-label">이메일</td>
-                      <td>finance@ador.world</td>
-                      <td className="invoice-label">업태 / 종목</td>
-                      <td className="invoice-value">소매 / 유통 및 음반소비</td>
-                      <td className="invoice-label">이메일</td>
-                      <td>buyer@company.co.kr</td>
-                    </tr>
-
-                    {/* Double border separator */}
-                    <tr className="invoice-double-line">
-                      <td colspan="10" style={{ height: '4px', padding: 0, backgroundColor: '#ff4d4d' }}></td>
-                    </tr>
-
-                    {/* 작성일자 & 금액 */}
-                    <tr>
-                      <td colspan="2" className="invoice-label">작성일자</td>
-                      <td colspan="2" className="invoice-value-center" style={{ fontWeight: 'bold' }}>{selectedInvoice.date}</td>
-                      <td colspan="2" className="invoice-label">공급가액</td>
-                      <td colspan="2" className="invoice-value-center" style={{ fontWeight: 'bold', fontSize: '12px' }}>
-                        {selectedInvoice.supplyValue.toLocaleString()} 원
-                      </td>
-                      <td className="invoice-label">세액 (부가세)</td>
-                      <td className="invoice-value-center" style={{ fontWeight: 'bold', fontSize: '12px' }}>
-                        {selectedInvoice.vat.toLocaleString()} 원
-                      </td>
-                    </tr>
-
-                    {/* 세부 항목 표 */}
-                    <tr style={{ backgroundColor: '#ffeef0' }}>
-                      <td className="invoice-label" style={{ width: '4%' }}>월/일</td>
-                      <td colspan="3" className="invoice-label">품목명 (규격)</td>
-                      <td className="invoice-label">수량</td>
-                      <td className="invoice-label">단가</td>
-                      <td colspan="2" className="invoice-label">공급가액</td>
-                      <td className="invoice-label">세액</td>
-                      <td className="invoice-label" style={{ width: '10%' }}>비고</td>
-                    </tr>
-                    <tr>
-                      <td>{selectedInvoice.date.substring(5, 7)} / {selectedInvoice.date.substring(8, 10)}</td>
-                      <td colspan="3" className="invoice-value">{selectedInvoice.itemName}</td>
-                      <td>{selectedInvoice.qty}</td>
-                      <td style={{ textAlign: 'right' }}>{selectedInvoice.price.toLocaleString()}</td>
-                      <td colspan="2" style={{ textAlign: 'right' }}>{selectedInvoice.supplyValue.toLocaleString()}</td>
-                      <td style={{ textAlign: 'right' }}>{selectedInvoice.vat.toLocaleString()}</td>
-                      <td>-</td>
-                    </tr>
-
-                    {/* 합계금액 및 영수/청구 */}
-                    <tr style={{ height: '30px' }}>
-                      <td colspan="2" className="invoice-label">합계금액</td>
-                      <td colspan="6" style={{ textAlign: 'right', fontWeight: 'bold', paddingRight: '12px', fontSize: '12px' }}>
-                        {(selectedInvoice.supplyValue + selectedInvoice.vat).toLocaleString()} 원
-                      </td>
-                      <td colspan="2" style={{ fontWeight: 'bold', fontSize: '12px', color: '#ff0000', backgroundColor: '#ffeef0' }}>
-                        {selectedInvoice.status === '발행' ? '영수(완료)' : '청구(외상)'}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="modal-body" style={{ padding: '30px 20px', background: '#ffffff' }}>
                 
-                <div style={{ textAlign: 'left', fontSize: '9px', color: '#666', marginTop: '8px' }}>
-                  * 본 세금계산서는 국세청 홈택스 고시 규격에 맞추어 전자 서명 발급되었습니다.
-                </div>
-              </div>
+                {/* Official Tax Invoice Blue Table Container */}
+                <div className="tax-invoice-container">
+                  <div className="invoice-title">전 자 세 금 계 산 서</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '10px' }}>
+                    <div>(공급받는자 보관용 / 수탁 발행용)</div>
+                    <div>승인 번호: {selectedInvoice.status === '발행' ? selectedInvoice.id : '임시 작성중 (미전송)'}</div>
+                  </div>
 
-            </div>
-            
-            <div className="modal-footer print-hide" style={{ background: '#f3f4f6', borderColor: '#e5e7eb' }}>
-              <button className="btn btn-secondary" onClick={() => setShowInvoiceModal(false)}>닫기</button>
+                  <table className="tax-invoice-table" style={{ width: '100%', borderCollapse: 'collapse', border: '2px solid #3b74b8', tableLayout: 'fixed', margin: 0 }}>
+                    <colgroup>
+                      {Array(240).fill().map((_, i) => (
+                        <col key={i} style={{ width: `${100 / 240}%` }} />
+                      ))}
+                    </colgroup>
+                    <tbody>
+                      {/* --- 공급자 및 공급받는자 영역 --- */}
+                      <tr>
+                        {/* 공급자 구분 */}
+                        <td rowSpan="4" colSpan="10" className="invoice-section-header" style={{ verticalAlign: 'middle', fontWeight: 'bold', color: '#1a56db', backgroundColor: '#e6f0ff' }}>
+                          공<br />급<br />자
+                        </td>
+                        {/* 공급자 등록번호 */}
+                        <td colSpan="15" className="invoice-label">등록번호</td>
+                        <td colSpan="95" style={{ fontWeight: 'bold', fontSize: '13px', color: '#1a56db', textAlign: 'center', verticalAlign: 'middle' }}>
+                          595-81-02960
+                        </td>
+
+                        {/* 공급받는자 구분 */}
+                        <td rowSpan="4" colSpan="10" className="invoice-section-header" style={{ verticalAlign: 'middle', fontWeight: 'bold', color: '#1a56db', backgroundColor: '#f0f7ff' }}>
+                          공<br />급<br />받<br />는<br />자
+                        </td>
+                        {/* 공급받는자 등록번호 */}
+                        <td colSpan="15" className="invoice-label">등록번호</td>
+                        <td colSpan="95" style={{ fontWeight: 'bold', fontSize: '13px', textAlign: 'center', verticalAlign: 'middle' }}>
+                          {resolvedBuyerRegNum}
+                        </td>
+                      </tr>
+
+                      <tr>
+                        {/* 공급자 상호 / 대표자 */}
+                        <td colSpan="15" className="invoice-label">상호(법인명)</td>
+                        <td colSpan="45" className="invoice-value" style={{ wordBreak: 'break-all', whiteSpace: 'normal' }}>
+                          (주)뉴진사이언스
+                        </td>
+                        <td colSpan="15" className="invoice-label">성명(대표)</td>
+                        <td colSpan="35" style={{ textAlign: 'center', verticalAlign: 'middle', position: 'relative', padding: 0 }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%', height: '100%' }}>
+                            <span style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: 'bold' }}>김기환</span>
+                            <img 
+                              src="/stamp.png" 
+                              alt="회사인감" 
+                              style={{
+                                width: '64px',
+                                height: '64px',
+                                objectFit: 'contain',
+                                transform: 'rotate(8deg) translateY(-2px)',
+                                position: 'absolute',
+                                right: '-25px',
+                                top: '-20px',
+                                opacity: 0.85,
+                                pointerEvents: 'none'
+                              }} 
+                            />
+                          </div>
+                        </td>
+
+                        {/* 공급받는자 상호 / 대표자 */}
+                        <td colSpan="15" className="invoice-label">상호(법인명)</td>
+                        <td colSpan="45" className="invoice-value" style={{ wordBreak: 'break-all', whiteSpace: 'normal' }}>
+                          {resolvedBuyerName}
+                        </td>
+                        <td colSpan="15" className="invoice-label">성명(대표)</td>
+                        <td colSpan="35" style={{ textAlign: 'center', verticalAlign: 'middle', fontSize: '11px', whiteSpace: 'nowrap' }}>
+                          {resolvedBuyerOwner ? `${resolvedBuyerOwner} (인)` : ''}
+                        </td>
+                      </tr>
+
+                      <tr>
+                        {/* 공급자 주소 */}
+                        <td colSpan="15" className="invoice-label">사업장주소</td>
+                        <td colSpan="95" className="invoice-value" style={{ fontSize: '10px', wordBreak: 'break-all', whiteSpace: 'normal', padding: '4px' }}>
+                          경기도 광명시 소하동 190,광명G타워 B동 921호
+                        </td>
+
+                        {/* 공급받는자 주소 */}
+                        <td colSpan="15" className="invoice-label">사업장주소</td>
+                        <td colSpan="95" className="invoice-value" style={{ fontSize: '10px', wordBreak: 'break-all', whiteSpace: 'normal', padding: '4px' }}>
+                          {resolvedBuyerAddress}
+                        </td>
+                      </tr>
+
+                      <tr>
+                        {/* 공급자 업태/종목 및 이메일 */}
+                        <td colSpan="15" className="invoice-label">업태 / 종목</td>
+                        <td colSpan="45" className="invoice-value" style={{ fontSize: '10px', wordBreak: 'break-all', whiteSpace: 'normal', padding: '4px' }}>
+                          도소매 / 연구용시약기재수출입업
+                        </td>
+                        <td colSpan="15" className="invoice-label">이메일</td>
+                        <td colSpan="35" className="invoice-value-email" style={{ fontSize: '10px', wordBreak: 'break-all', whiteSpace: 'normal', padding: '4px' }}>
+                          newgenes@newgenesci.com
+                        </td>
+
+                        {/* 공급받는자 업태/종목 및 이메일 */}
+                        <td colSpan="15" className="invoice-label">업태 / 종목</td>
+                        <td colSpan="45" className="invoice-value" style={{ fontSize: '10px', wordBreak: 'break-all', whiteSpace: 'normal', padding: '4px' }}>
+                          {(resolvedBuyerBizType && resolvedBuyerBizItem) ? `${resolvedBuyerBizType} / ${resolvedBuyerBizItem}` : (resolvedBuyerBizType || resolvedBuyerBizItem || '')}
+                        </td>
+                        <td colSpan="15" className="invoice-label">이메일</td>
+                        <td colSpan="35" className="invoice-value-email" style={{ fontSize: '10px', wordBreak: 'break-all', whiteSpace: 'normal', padding: '4px' }}>
+                          {resolvedBuyerEmail}
+                        </td>
+                      </tr>
+
+                      {/* --- 작성일자 및 금액 자릿수 행 --- */}
+                      {/* 1. 대분류 헤더 행 */}
+                      <tr style={{ backgroundColor: '#f0f7ff', height: '20px' }}>
+                        <td colSpan="40" className="invoice-label" style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '10px' }}>작 성 일 자</td>
+                        <td colSpan="120" className="invoice-label" style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '10px' }}>공 공급가액</td>
+                        <td colSpan="80" className="invoice-label" style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '10px' }}>세 액</td>
+                      </tr>
+
+                      {/* 2. 자릿수 단위 헤더 행 */}
+                      <tr style={{ backgroundColor: '#f0f7ff', height: '18px', fontSize: '9px' }}>
+                        {/* 작성일자 단위 */}
+                        <td colSpan="20" style={{ textAlign: 'center', borderRight: '1px solid #3b74b8' }}>년</td>
+                        <td colSpan="10" style={{ textAlign: 'center', borderRight: '1px solid #3b74b8' }}>월</td>
+                        <td colSpan="10" style={{ textAlign: 'center', borderRight: '1px solid #3b74b8' }}>일</td>
+                        {/* 공급가액 단위 */}
+                        {['공란', '백', '십', '억', '천', '백', '십', '만', '천', '백', '십', '일'].map((text, i) => (
+                          <td key={`sh-${i}`} colSpan="10" style={{ textAlign: 'center', color: '#1a56db', fontWeight: '500' }}>{text}</td>
+                        ))}
+                        {/* 세액 단위 */}
+                        {['십', '억', '천', '백', '십', '만', '천', '백', '십', '일'].map((text, i) => (
+                          <td key={`vh-${i}`} colSpan="8" style={{ textAlign: 'center', color: '#1a56db', fontWeight: '500' }}>{text}</td>
+                        ))}
+                      </tr>
+
+                      {/* 3. 자릿수 데이터 행 */}
+                      <tr style={{ height: '26px', fontWeight: 'bold', fontSize: '12px' }}>
+                        {/* 작성일자 년/월/일 값 (각 자릿수 td) */}
+                        {dateYear.split('').map((char, i) => (
+                          <td key={`y-${i}`} colSpan="5" style={{ textAlign: 'center', verticalAlign: 'middle', padding: 0 }}>{char}</td>
+                        ))}
+                        {dateMonth.split('').map((char, i) => (
+                          <td key={`m-${i}`} colSpan="5" style={{ textAlign: 'center', verticalAlign: 'middle', padding: 0 }}>{char}</td>
+                        ))}
+                        {dateDay.split('').map((char, i) => (
+                          <td key={`d-${i}`} colSpan="5" style={{ textAlign: 'center', verticalAlign: 'middle', padding: 0 }}>{char}</td>
+                        ))}
+                        {/* 공급가액 값 */}
+                        {supplyDigits.map((digit, i) => (
+                          <td key={`sd-${i}`} colSpan="10" style={{ textAlign: 'center', verticalAlign: 'middle', padding: 0, color: '#111827' }}>{digit}</td>
+                        ))}
+                        {/* 세액 값 */}
+                        {vatDigits.map((digit, i) => (
+                          <td key={`vd-${i}`} colSpan="8" style={{ textAlign: 'center', verticalAlign: 'middle', padding: 0, color: '#1a56db' }}>{digit}</td>
+                        ))}
+                      </tr>
+
+                      {/* --- 비고 행 --- */}
+                      <tr>
+                        <td colSpan="40" className="invoice-label">비 고</td>
+                        <td colSpan="200" className="invoice-value" style={{ height: '26px' }}>-</td>
+                      </tr>
+
+                      {/* --- 품목 상세 헤더 행 --- */}
+                      <tr style={{ backgroundColor: '#f0f7ff', height: '22px', fontWeight: 'bold' }}>
+                        <td colSpan="6" className="invoice-label">월</td>
+                        <td colSpan="6" className="invoice-label">일</td>
+                        <td colSpan="84" className="invoice-label">품목명 (규격)</td>
+                        <td colSpan="20" className="invoice-label">규격</td>
+                        <td colSpan="14" className="invoice-label">수량</td>
+                        <td colSpan="35" className="invoice-label">단가</td>
+                        <td colSpan="35" className="invoice-label">공급가액</td>
+                        <td colSpan="35" className="invoice-label">세액</td>
+                        <td colSpan="5" className="invoice-label">비고</td>
+                      </tr>
+
+                      {/* --- 품목 상세 데이터 행 --- */}
+                      <tr style={{ height: '28px', fontSize: '11px' }}>
+                        <td colSpan="6" style={{ textAlign: 'center' }}>{dateMonth}</td>
+                        <td colSpan="6" style={{ textAlign: 'center' }}>{dateDay}</td>
+                        <td colSpan="84" className="invoice-value" style={{ wordBreak: 'break-all', whiteSpace: 'normal', padding: '4px' }}>
+                          {selectedInvoice.itemName}
+                        </td>
+                        <td colSpan="20" style={{ textAlign: 'center' }}>{resolvedSpec || '-'}</td>
+                        <td colSpan="14" style={{ textAlign: 'center' }}>{selectedInvoice.qty}</td>
+                        <td colSpan="35" style={{ textAlign: 'right', paddingRight: '6px' }}>{selectedInvoice.price.toLocaleString()}</td>
+                        <td colSpan="35" style={{ textAlign: 'right', paddingRight: '6px' }}>{selectedInvoice.supplyValue.toLocaleString()}</td>
+                        <td colSpan="35" style={{ textAlign: 'right', paddingRight: '6px' }}>{selectedInvoice.vat.toLocaleString()}</td>
+                        <td colSpan="5" style={{ textAlign: 'center' }}>-</td>
+                      </tr>
+
+                      {/* --- 합계금액 및 결제방식 헤더 행 --- */}
+                      <tr style={{ backgroundColor: '#f0f7ff', height: '18px', fontSize: '9px', color: '#1a56db' }}>
+                        <td colSpan="50" className="invoice-label">합계금액</td>
+                        <td colSpan="25" className="invoice-label">현금</td>
+                        <td colSpan="25" className="invoice-label">수표</td>
+                        <td colSpan="25" className="invoice-label">어음</td>
+                        <td colSpan="35" className="invoice-label">외상미수금</td>
+                        <td colSpan="80" rowSpan="2" style={{ 
+                          fontWeight: 'bold', 
+                          fontSize: '12px', 
+                          color: '#ff4d4d', 
+                          backgroundColor: '#f0f7ff', 
+                          textAlign: 'center', 
+                          verticalAlign: 'middle',
+                          borderLeft: '1px solid #3b74b8'
+                        }}>
+                          이 금액을 청구함.
+                        </td>
+                      </tr>
+
+                      {/* --- 합계금액 및 결제방식 데이터 행 --- */}
+                      <tr style={{ height: '26px', fontWeight: 'bold', textAlign: 'center' }}>
+                        <td colSpan="50" style={{ color: '#1a56db', verticalAlign: 'middle' }}>
+                          {(selectedInvoice.supplyValue + selectedInvoice.vat).toLocaleString()} 원
+                        </td>
+                        <td colSpan="25" style={{ verticalAlign: 'middle' }}></td>
+                        <td colSpan="25" style={{ verticalAlign: 'middle' }}></td>
+                        <td colSpan="25" style={{ verticalAlign: 'middle' }}></td>
+                        <td colSpan="35" style={{ verticalAlign: 'middle', textAlign: 'right', paddingRight: '8px' }}>
+                          {(selectedInvoice.supplyValue + selectedInvoice.vat).toLocaleString()}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  
+                  {/* 계좌 정보 및 하단 국세청 고시문 */}
+                  <div style={{ textAlign: 'left', fontSize: '11px', fontWeight: 'bold', color: '#111827', marginTop: '12px', borderTop: '1px dashed #3b74b8', paddingTop: '8px' }}>
+                    (기업은행 699-037504-04-022 예금주 (주) 뉴진사이언스)
+                  </div>
+                  <div style={{ textAlign: 'left', fontSize: '9px', color: '#666', marginTop: '6px' }}>
+                    * 본 세금계산서는 국세청 홈택스 고시 규격에 맞추어 전자 서명 발급되었습니다.
+                  </div>
+                </div>
+
+              </div>
+              
+              <div className="modal-footer print-hide" style={{ background: '#f3f4f6', borderColor: '#e5e7eb' }}>
+                <button className="btn btn-secondary" onClick={() => setShowInvoiceModal(false)}>닫기</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

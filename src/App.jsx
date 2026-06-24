@@ -3,32 +3,11 @@ import Inventory from './components/Inventory';
 import Accounting from './components/Accounting';
 
 // --- DATABASE VERSION FOR SEED RESET ---
-const DB_VERSION = '2';
+const DB_VERSION = '10';
 
-// --- MOCK SEED DATA ---
-const initialItems = [
-  { code: 'CD-001', name: "NewJeans 2nd EP 'Get Up' Album", type: '완제품', spec: 'Bunny Beach Bag Ver.', unit: 'EA', safetyStock: 100, purchasePrice: 9500, salesPrice: 18500, stock: 250 },
-  { code: 'CD-002', name: "NewJeans Double Single 'How Sweet'", type: '완제품', spec: 'Standard Ver.', unit: 'EA', safetyStock: 80, purchasePrice: 11000, salesPrice: 22000, stock: 180 },
-  { code: 'GD-001', name: 'NewJeans Official Lightstick (빙키봉)', type: '완제품', spec: 'LED Bluetooth V2', unit: 'EA', safetyStock: 50, purchasePrice: 22000, salesPrice: 49000, stock: 120 },
-  { code: 'GD-002', name: 'NewJeans Tokki Keyring (토끼 키링)', type: '완제품', spec: 'Plush Mint', unit: 'EA', safetyStock: 150, purchasePrice: 6000, salesPrice: 15000, stock: 450 },
-  { code: 'RM-CD', name: '공CD 디스크 (음반 프레싱 자재)', type: '원재료', spec: '120mm / Silver', unit: 'EA', safetyStock: 500, purchasePrice: 800, salesPrice: 0, stock: 2500 },
-  { code: 'RM-PB', name: '포토북 인쇄용 수입지 (용지 지재)', type: '원재료', spec: 'Snow White 150g', unit: 'R', safetyStock: 200, purchasePrice: 1200, salesPrice: 0, stock: 320 }
-];
+import initialPartners from './data/partners.json';
+import initialItems from './data/items.json';
 
-const initialPartners = [
-  // Existing Partners
-  { code: 'PT-001', name: '위버스 글로벌 샵 (Weverse Shop)', type: '매출처', bizNum: '220-81-12345', owner: '최준원', email: 'support@weverse.io', phone: '02-120-4820' },
-  { code: 'PT-002', name: '라인프렌즈 공식 스토어 (강남점)', type: '매출처', bizNum: '110-85-98765', owner: '이아름', email: 'wholesale@linefriends.com', phone: '02-3482-1234' },
-  { code: 'PT-003', name: 'YG PLUS (음반 제작 위탁사)', type: '매입처', bizNum: '105-81-22941', owner: '최성준', email: 'logistics@ygplus.com', phone: '02-748-2940' },
-  { code: 'PT-004', name: '(주)인쇄나라 (포토북 제작)', type: '매입처', bizNum: '206-82-44122', owner: '김종석', email: 'printing@nara.co.kr', phone: '031-987-1244' },
-  { code: 'PT-005', name: 'SBS 예능제작본부', type: '매출처', bizNum: '101-81-00123', owner: '박상현', email: 'sbs_pd@sbs.co.kr', phone: '02-2113-5000' },
-  
-  // Image-Matching Partners
-  { code: 'PT-006', name: '한림대학교', type: '매출처', bizNum: '아주대_오상욱P', owner: '오상욱', email: 'hanlim@univ.ac.kr', phone: '031-219-2114' },
-  { code: 'PT-007', name: '이디럽서비스', type: '매출처', bizNum: '462-18-01288', owner: '이디럽 대표', email: 'info@edirub.com', phone: '02-582-9481' },
-  { code: 'PT-008', name: '서울대 이장규P', type: '매출처', bizNum: '250811-01', owner: '이장규', email: 'jklee@snu.ac.kr', phone: '02-880-5114' },
-  { code: 'PT-009', name: '주식회사 셀바스찬', type: '매출처', bizNum: '463-81-03153', owner: '세바스찬', email: 'contact@sebastian.co.kr', phone: '02-948-1244' }
-];
 
 const initialSales = [
   // Image-Matching Sales Entries (Seeded exactly as shown in the screenshot)
@@ -114,7 +93,31 @@ const initialPurchases = [
 ];
 
 const initialTaxInvoices = [
-  { id: 'TX-1718000001', slipId: 'SL-1002', date: '2026-06-22', supplierName: '(주)어도어 (ADOR Co., Ltd.)', supplierRegNum: '107-86-94827', supplierOwner: '민희진', buyerName: '이디럽서비스', buyerRegNum: '462-18-01288', itemName: 'ExTransfection, Transfection System starter pack (pipette, Station, 10ul, 100ul tips 192reaction)', qty: 1, price: 12000000, supplyValue: 12000000, vat: 1200000, status: '발행' }
+  { 
+    id: 'TX-1718000001', 
+    slipId: 'SL-1002', 
+    date: '2026-06-22', 
+    supplierName: '(주)뉴진사이언스', 
+    supplierRegNum: '595-81-02960', 
+    supplierOwner: '김기환', 
+    supplierAddress: '경기도 광명시 소하동 190,광명G타워 B동 921호',
+    supplierBizType: '도소매',
+    supplierBizItem: '연구용시약기재수출입업',
+    supplierEmail: 'newgenes@newgenesci.com',
+    buyerName: '이디럽서비스', 
+    buyerRegNum: '462-18-01288', 
+    buyerOwner: '이디럽 대표',
+    buyerAddress: '인천광역시 부평구 부평대로 301',
+    buyerBizType: '서비스업',
+    buyerBizItem: '전자상거래',
+    buyerEmail: 'edirup@naver.com',
+    itemName: 'ExTransfection, Transfection System starter pack (pipette, Station, 10ul, 100ul tips 192reaction)', 
+    qty: 1, 
+    price: 12000000, 
+    supplyValue: 12000000, 
+    vat: 1200000, 
+    status: '발행' 
+  }
 ];
 
 const initialBankTransactions = [
@@ -163,12 +166,30 @@ export default function App() {
   // Global State (persisted in LocalStorage)
   const [items, setItems] = useState(() => {
     const local = localStorage.getItem('nj_items');
-    return local ? JSON.parse(local) : initialItems;
+    if (local) {
+      const parsed = JSON.parse(local);
+      // Auto-reset if it's only the old mock list or contains any old mock codes
+      const hasMockItems = parsed.some(item => ['CD-001', 'CD-002', 'GD-001', 'GD-002', 'RM-CD', 'RM-PB'].includes(item.code));
+      if (hasMockItems || parsed.length <= 6) {
+        return initialItems;
+      }
+      return parsed;
+    }
+    return initialItems;
   });
 
   const [partners, setPartners] = useState(() => {
     const local = localStorage.getItem('nj_partners');
-    return local ? JSON.parse(local) : initialPartners;
+    if (local) {
+      const parsed = JSON.parse(local);
+      // Auto-reset if it's the old mock list, contains mock partner names, or missing bizType
+      const hasMockPartners = parsed.some(p => ['YG PLUS (음반 제작 위탁사)', '(주)인쇄나라 (포토북 제작)', 'YG PLUS', '인쇄나라'].includes(p.name));
+      if (hasMockPartners || parsed.length <= 9 || (parsed.length > 0 && !('bizType' in parsed[0]))) {
+        return initialPartners;
+      }
+      return parsed;
+    }
+    return initialPartners;
   });
 
   const [sales, setSales] = useState(() => {
@@ -650,6 +671,7 @@ export default function App() {
           {/* TAB 3: ACCOUNTING */}
           {activeTab === 'accounting' && (
             <Accounting 
+              partners={partners}
               items={items}
               setItems={setItems}
               sales={sales}
