@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/newjeans-erp/',
+  base: process.env.GITHUB_ACTIONS ? '/newjeans-erp/' : '/',
   plugins: [react()],
 })
+
 
