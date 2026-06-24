@@ -3,94 +3,13 @@ import Inventory from './components/Inventory';
 import Accounting from './components/Accounting';
 
 // --- DATABASE VERSION FOR SEED RESET ---
-const DB_VERSION = '10';
+const DB_VERSION = '11';
 
 import initialPartners from './data/partners.json';
 import initialItems from './data/items.json';
+import initialSales from './data/sales.json';
+import initialPurchases from './data/purchases.json';
 
-
-const initialSales = [
-  // Image-Matching Sales Entries (Seeded exactly as shown in the screenshot)
-  { 
-    id: 'SL-1001', 
-    date: '2026-06-22', 
-    seq: 2, 
-    partnerCode: '아주대_오상욱P', 
-    customer: '한림대학교', 
-    paymentMethod: '', 
-    note: '', 
-    itemCode: 'CD-001', 
-    itemName: 'Clonal Genes (300<X≤1800) - Total ea 외 2건', 
-    qty: 3, 
-    price: 735200, 
-    supplyValue: 2205600, 
-    vat: 220560, 
-    purchasePlace: '엑소젠', 
-    employee: '양유지', 
-    isAccountReflected: false 
-  },
-  { 
-    id: 'SL-1002', 
-    date: '2026-06-22', 
-    seq: 1, 
-    partnerCode: '462-18-01288', 
-    customer: '이디럽서비스', 
-    paymentMethod: '나노엔텍(뉴진)', 
-    note: '', 
-    itemCode: 'CD-002', 
-    itemName: 'ExTransfection, Transfection System starter pack (pipette, Station, 10ul, 100ul tips 192reaction)', 
-    qty: 1, 
-    price: 12000000, 
-    supplyValue: 12000000, 
-    vat: 1200000, 
-    purchasePlace: '나노엔텍(뉴진)', 
-    employee: '양유지', 
-    isAccountReflected: true 
-  },
-  { 
-    id: 'SL-1003', 
-    date: '2026-06-17', 
-    seq: 1, 
-    partnerCode: '250811-01', 
-    customer: '서울대 이장규P', 
-    paymentMethod: '', 
-    note: 'Q-669874', 
-    itemCode: 'GD-001', 
-    itemName: 'Gene Fragments without Adapters(300<X≤1800)- Total', 
-    qty: 1, 
-    price: 1937700, 
-    supplyValue: 1937700, 
-    vat: 193770, 
-    purchasePlace: '엑소젠', 
-    employee: '양유지', 
-    isAccountReflected: false 
-  },
-  { 
-    id: 'SL-1004', 
-    date: '2026-06-11', 
-    seq: 1, 
-    partnerCode: '463-81-03153', 
-    customer: '주식회사 셀바스찬', 
-    paymentMethod: '6.22', 
-    note: '', 
-    itemCode: 'GD-002', 
-    itemName: 'Stericup Quick Release-GP Sterile Vacuum Filtr 외 6건', 
-    qty: 7, 
-    price: 560928, 
-    supplyValue: 3926500, 
-    vat: 392650, 
-    purchasePlace: '다원 홍성종', 
-    employee: '양유지', 
-    isAccountReflected: true 
-  }
-];
-
-const initialPurchases = [
-  { id: 'PC-1718000001', date: '2026-01-10', vendor: 'YG PLUS (음반 제작 위탁사)', itemCode: 'CD-001', itemName: "NewJeans 2nd EP 'Get Up' Album", qty: 1000, price: 9500, supplyValue: 9500000, vat: 950000, paymentMethod: '계좌' },
-  { id: 'PC-1718000002', date: '2026-02-12', vendor: '(주)인쇄나라 (포토북 제작)', itemCode: 'RM-PB', itemName: '포토북 인쇄용 수입지 (용지 지재)', qty: 100, price: 12000, supplyValue: 1200000, vat: 120000, paymentMethod: '계좌' },
-  { id: 'PC-1718000003', date: '2026-04-18', vendor: 'YG PLUS (음반 제작 위탁사)', itemCode: 'CD-001', itemName: "NewJeans 2nd EP 'Get Up' Album", qty: 1500, price: 9500, supplyValue: 14250000, vat: 1425000, paymentMethod: '계좌' },
-  { id: 'PC-1718000004', date: '2026-06-12', vendor: '(주)인쇄나라 (포토북 제작)', itemCode: 'RM-PB', itemName: '포토북 인쇄용 수입지 (용지 지재)', qty: 150, price: 12000, supplyValue: 1800000, vat: 180000, paymentMethod: '계좌' }
-];
 
 const initialTaxInvoices = [
   { 
