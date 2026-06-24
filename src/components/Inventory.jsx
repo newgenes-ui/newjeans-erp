@@ -34,6 +34,12 @@ export default function Inventory({
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
   const [salesSearchQuery, setSalesSearchQuery] = useState('');
 
+  // Searchable select states for item selection
+  const [salesItemSearchText, setSalesItemSearchText] = useState('');
+  const [showSalesItemDropdown, setShowSalesItemDropdown] = useState(false);
+  const [purchaseItemSearchText, setPurchaseItemSearchText] = useState('');
+  const [showPurchaseItemDropdown, setShowPurchaseItemDropdown] = useState(false);
+
   // Pagination & Sorting States for Items
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(25);
@@ -268,7 +274,30 @@ export default function Inventory({
   const triggerEditSales = (sale) => {
     setEditingSales(sale);
     setSalesForm({ ...sale });
+    setSalesItemSearchText(sale.itemName ? `[${sale.itemCode}] ${sale.itemName}` : '');
     setShowSalesModal(true);
+  };
+
+  const handleSelectSalesItem = (item) => {
+    setSalesForm(prev => ({
+      ...prev,
+      itemCode: item.code,
+      price: item.salesPrice,
+      itemName: item.name
+    }));
+    setSalesItemSearchText(`[${item.code}] ${item.name}`);
+    setShowSalesItemDropdown(false);
+  };
+
+  const handleSelectPurchaseItem = (item) => {
+    setPurchaseForm(prev => ({
+      ...prev,
+      itemCode: item.code,
+      price: item.purchasePrice,
+      itemName: item.name
+    }));
+    setPurchaseItemSearchText(`[${item.code}] ${item.name}`);
+    setShowPurchaseItemDropdown(false);
   };
 
   // --- TRANSACTION HANDLERS ---
@@ -320,6 +349,7 @@ export default function Inventory({
     }
 
     setShowSalesModal(false);
+    setSalesItemSearchText('');
     
     // Reset Sales form
     setSalesForm({
@@ -365,6 +395,7 @@ export default function Inventory({
     setItems(prev => prev.map(i => i.code === purchaseForm.itemCode ? { ...i, stock: i.stock + Number(purchaseForm.qty) } : i));
     logActivity('재고', `구매 전표 등록: ${purchaseForm.vendor} - ${item.name} ${purchaseForm.qty}개`);
     setShowPurchaseModal(false);
+    setPurchaseItemSearchText('');
     
     setPurchaseForm({
       date: new Date().toISOString().substring(0, 10),
@@ -743,6 +774,7 @@ export default function Inventory({
                     employee: '양유지',
                     isAccountReflected: true
                   }));
+                  setSalesItemSearchText('');
                   setShowSalesModal(true);
                 }}
               >
@@ -845,6 +877,7 @@ export default function Inventory({
                     ...prev,
                     vendor: partners.length > 0 ? partners[0].name : ''
                   }));
+                  setPurchaseItemSearchText('');
                   setShowPurchaseModal(true);
                 }}
               >
@@ -1248,21 +1281,71 @@ export default function Inventory({
                   </div>
                 </div>
 
-                <div className="form-group" style={{ marginBottom: '16px' }}>
+                <div className="form-group searchable-dropdown" style={{ marginBottom: '16px', position: 'relative' }}>
                   <label className="form-label">판매 품목 선택 *</label>
-                  <select 
+                  <input 
+                    type="text"
                     className="form-control"
+                    placeholder="품목코드 또는 품목명 입력해 검색..."
                     required
-                    value={salesForm.itemCode}
-                    onChange={(e) => handleSalesItemChange(e.target.value)}
-                  >
-                    <option value="">-- 품목을 선택하세요 --</option>
-                    {items.filter(i => i.type === '완제품').map(i => (
-                      <option key={i.code} value={i.code}>
-                        [{i.code}] {i.name} (재고: {i.stock} {i.unit})
-                      </option>
-                    ))}
-                  </select>
+                    value={salesItemSearchText}
+                    onChange={(e) => {
+                      setSalesItemSearchText(e.target.value);
+                      setShowSalesItemDropdown(true);
+                    }}
+                    onFocus={() => setShowSalesItemDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowSalesItemDropdown(false), 200)}
+                  />
+                  {showSalesItemDropdown && (
+                    <ul className="dropdown-menu-list" style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      backgroundColor: 'var(--card-bg, #fff)',
+                      border: '1px solid var(--border-color, #e5e7eb)',
+                      borderRadius: '6px',
+                      zIndex: 1000,
+                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                      marginTop: '4px',
+                      listStyle: 'none',
+                      padding: 0
+                    }}>
+                      {(() => {
+                        const filtered = items
+                          .filter(i => i.type === '완제품')
+                          .filter(i => 
+                            (i.name || '').toLowerCase().includes(salesItemSearchText.toLowerCase()) ||
+                            (i.code || '').toLowerCase().includes(salesItemSearchText.toLowerCase())
+                          );
+                        if (filtered.length === 0) {
+                          return (
+                            <li className="dropdown-item-option" style={{ padding: '8px 12px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                              검색 결과가 없습니다.
+                            </li>
+                          );
+                        }
+                        return filtered.slice(0, 100).map(i => (
+                          <li 
+                            key={i.code} 
+                            className="dropdown-item-option" 
+                            style={{ 
+                              padding: '8px 12px', 
+                              cursor: 'pointer', 
+                              fontSize: '13px', 
+                              borderBottom: '1px solid var(--border-color, #e5e7eb)',
+                              backgroundColor: 'transparent'
+                            }}
+                            onClick={() => handleSelectSalesItem(i)}
+                          >
+                            <strong>[{i.code}]</strong> {i.name} (재고: {i.stock} {i.unit})
+                          </li>
+                        ));
+                      })()}
+                    </ul>
+                  )}
                 </div>
 
                 <div className="form-grid">
@@ -1390,21 +1473,70 @@ export default function Inventory({
                   </div>
                 </div>
 
-                <div className="form-group" style={{ marginBottom: '16px' }}>
+                <div className="form-group searchable-dropdown" style={{ marginBottom: '16px', position: 'relative' }}>
                   <label className="form-label">구매 품목 선택 *</label>
-                  <select 
+                  <input 
+                    type="text"
                     className="form-control"
+                    placeholder="품목코드 또는 품목명 입력해 검색..."
                     required
-                    value={purchaseForm.itemCode}
-                    onChange={(e) => handlePurchaseItemChange(e.target.value)}
-                  >
-                    <option value="">-- 품목을 선택하세요 --</option>
-                    {items.map(i => (
-                      <option key={i.code} value={i.code}>
-                        [{i.code}] {i.name} (구분: {i.type}, 재고: {i.stock} {i.unit})
-                      </option>
-                    ))}
-                  </select>
+                    value={purchaseItemSearchText}
+                    onChange={(e) => {
+                      setPurchaseItemSearchText(e.target.value);
+                      setShowPurchaseItemDropdown(true);
+                    }}
+                    onFocus={() => setShowPurchaseItemDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowPurchaseItemDropdown(false), 200)}
+                  />
+                  {showPurchaseItemDropdown && (
+                    <ul className="dropdown-menu-list" style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      backgroundColor: 'var(--card-bg, #fff)',
+                      border: '1px solid var(--border-color, #e5e7eb)',
+                      borderRadius: '6px',
+                      zIndex: 1000,
+                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                      marginTop: '4px',
+                      listStyle: 'none',
+                      padding: 0
+                    }}>
+                      {(() => {
+                        const filtered = items
+                          .filter(i => 
+                            (i.name || '').toLowerCase().includes(purchaseItemSearchText.toLowerCase()) ||
+                            (i.code || '').toLowerCase().includes(purchaseItemSearchText.toLowerCase())
+                          );
+                        if (filtered.length === 0) {
+                          return (
+                            <li className="dropdown-item-option" style={{ padding: '8px 12px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                              검색 결과가 없습니다.
+                            </li>
+                          );
+                        }
+                        return filtered.slice(0, 100).map(i => (
+                          <li 
+                            key={i.code} 
+                            className="dropdown-item-option" 
+                            style={{ 
+                              padding: '8px 12px', 
+                              cursor: 'pointer', 
+                              fontSize: '13px', 
+                              borderBottom: '1px solid var(--border-color, #e5e7eb)',
+                              backgroundColor: 'transparent'
+                            }}
+                            onClick={() => handleSelectPurchaseItem(i)}
+                          >
+                            <strong>[{i.code}]</strong> {i.name} (구분: {i.type}, 재고: {i.stock} {i.unit})
+                          </li>
+                        ));
+                      })()}
+                    </ul>
+                  )}
                 </div>
 
                 <div className="form-grid">
