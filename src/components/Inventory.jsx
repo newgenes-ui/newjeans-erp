@@ -27,6 +27,7 @@ export default function Inventory({
   // Editing state
   const [editingItem, setEditingItem] = useState(null);
   const [editingPartner, setEditingPartner] = useState(null);
+  const [editingSales, setEditingSales] = useState(null);
   
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -264,37 +265,60 @@ export default function Inventory({
     }
   };
 
+  const triggerEditSales = (sale) => {
+    setEditingSales(sale);
+    setSalesForm({ ...sale });
+    setShowSalesModal(true);
+  };
+
   // --- TRANSACTION HANDLERS ---
   const handleSalesSubmit = (e) => {
     e.preventDefault();
-    if (!salesForm.customer || !salesForm.itemCode || salesForm.qty <= 0) {
-      alert('거래처, 품목, 수량을 모두 확인해 주세요.');
+    if (!salesForm.customer || salesForm.qty <= 0) {
+      alert('거래처와 수량을 모두 확인해 주세요.');
       return;
     }
 
-    const item = items.find(i => i.code === salesForm.itemCode);
-    if (!item) {
-      alert('유효하지 않은 품목입니다.');
-      return;
-    }
-
-    if (item.stock < salesForm.qty) {
-      if (!confirm(`현재고(${item.stock}개)가 출고 요청 수량(${salesForm.qty}개)보다 적습니다. 마이너스 재고로 진행하시겠습니까?`)) {
+    let itemName = salesForm.itemName || '';
+    if (salesForm.itemCode) {
+      const item = items.find(i => i.code === salesForm.itemCode);
+      if (!item) {
+        alert('유효하지 않은 품목입니다.');
         return;
+      }
+      itemName = item.name;
+      if (item.stock < salesForm.qty) {
+        if (!confirm(`현재고(${item.stock}개)가 출고 요청 수량(${salesForm.qty}개)보다 적습니다. 마이너스 재고로 진행하시겠습니까?`)) {
+          return;
+        }
       }
     }
 
-    const newSale = {
-      id: 'SL-' + Date.now(),
-      ...salesForm,
-      qty: Number(salesForm.qty),
-      price: Number(salesForm.price),
-      itemName: item.name
-    };
+    if (editingSales) {
+      setSales(prev => prev.map(s => s.id === editingSales.id ? { 
+        ...s, 
+        ...salesForm, 
+        qty: Number(salesForm.qty), 
+        price: Number(salesForm.price), 
+        itemName 
+      } : s));
+      logActivity('재고', `판매 전표 수정: ${salesForm.customer} - ${itemName}`);
+      setEditingSales(null);
+    } else {
+      const newSale = {
+        id: 'SL-' + Date.now(),
+        ...salesForm,
+        qty: Number(salesForm.qty),
+        price: Number(salesForm.price),
+        itemName
+      };
+      setSales(prev => [newSale, ...prev]);
+      if (salesForm.itemCode) {
+        setItems(prev => prev.map(i => i.code === salesForm.itemCode ? { ...i, stock: i.stock - Number(salesForm.qty) } : i));
+      }
+      logActivity('재고', `판매 전표 등록: ${salesForm.customer} - ${itemName} ${salesForm.qty}개`);
+    }
 
-    setSales(prev => [newSale, ...prev]);
-    setItems(prev => prev.map(i => i.code === salesForm.itemCode ? { ...i, stock: i.stock - Number(salesForm.qty) } : i));
-    logActivity('재고', `판매 전표 등록: ${salesForm.customer} - ${item.name} ${salesForm.qty}개`);
     setShowSalesModal(false);
     
     // Reset Sales form
@@ -771,7 +795,9 @@ export default function Inventory({
                     <tr key={sale.id}>
                       <td style={{ textAlign: 'center' }}><input type="checkbox" /></td>
                       <td style={{ fontWeight: '500' }}>
-                        {sale.date ? sale.date.replace(/-/g, '/') : ''} -{sale.seq || 1}
+                        <span className="link-text" onClick={() => triggerEditSales(sale)}>
+                          {sale.date ? sale.date.replace(/-/g, '/') : ''} -{sale.seq || 1}
+                        </span>
                       </td>
                       <td style={{ fontSize: '13px' }}>{sale.partnerCode || '-'}</td>
                       <td style={{ fontWeight: '600' }}>{sale.customer}</td>
@@ -1142,8 +1168,8 @@ export default function Inventory({
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h2 className="panel-title">신규 판매 등록</h2>
-              <button className="modal-close" onClick={() => setShowSalesModal(false)}>&times;</button>
+              <h2 className="panel-title">{editingSales ? '판매 전표 수정' : '신규 판매 등록'}</h2>
+              <button className="modal-close" onClick={() => { setShowSalesModal(false); setEditingSales(null); }}>&times;</button>
             </div>
             <form onSubmit={handleSalesSubmit}>
               <div className="modal-body">
@@ -1317,8 +1343,8 @@ export default function Inventory({
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowSalesModal(false)}>취소</button>
-                <button type="submit" className="btn btn-primary">판매 저장 및 출고</button>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowSalesModal(false); setEditingSales(null); }}>취소</button>
+                <button type="submit" className="btn btn-primary">{editingSales ? '수정 완료' : '판매 저장 및 출고'}</button>
               </div>
             </form>
           </div>
