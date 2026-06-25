@@ -875,21 +875,21 @@ export default function Inventory({
                   return filteredSales.map(sale => (
                     <tr key={sale.id}>
                       <td style={{ textAlign: 'center' }}><input type="checkbox" /></td>
-                      <td style={{ fontWeight: '500' }}>
+                      <td style={{ fontWeight: '500', whiteSpace: 'nowrap' }}>
                         <span className="link-text" onClick={() => triggerEditSales(sale)}>
                           {sale.date ? sale.date.replace(/-/g, '/') : ''} -{sale.seq || 1}
                         </span>
                       </td>
-                      <td style={{ fontSize: '13px' }}>{sale.partnerCode || '-'}</td>
+                      <td style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>{sale.partnerCode || '-'}</td>
                       <td style={{ fontWeight: '600' }}>{sale.customer}</td>
                       <td>{sale.paymentMethod || '-'}</td>
                       <td>{sale.note || '-'}</td>
                       <td style={{ fontSize: '12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={sale.itemName}>{sale.itemName}</td>
-                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-blue)' }}>
-                        {(Number(sale.supplyValue || 0) + Number(sale.vat || 0)).toLocaleString()}원
+                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-blue)', whiteSpace: 'nowrap' }}>
+                        {(Number(sale.supplyValue || 0) + Number(sale.vat || 0)).toLocaleString()}
                       </td>
-                      <td style={{ textAlign: 'right' }}>{Number(sale.supplyValue || 0).toLocaleString()}원</td>
-                      <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{Number(sale.vat || 0).toLocaleString()}원</td>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>{Number(sale.supplyValue || 0).toLocaleString()}</td>
+                      <td style={{ textAlign: 'right', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{Number(sale.vat || 0).toLocaleString()}</td>
                       <td>{sale.purchasePlace || '-'}</td>
                       <td>{sale.employee || '양유지'}</td>
                       <td style={{ textAlign: 'center', color: '#10b981', fontWeight: 'bold', fontSize: '16px' }}>
@@ -993,7 +993,7 @@ export default function Inventory({
                   return filteredPurchases.map(purchase => (
                     <tr key={purchase.id}>
                       <td style={{ textAlign: 'center' }}><input type="checkbox" /></td>
-                      <td style={{ fontWeight: '500' }}>
+                      <td style={{ fontWeight: '500', whiteSpace: 'nowrap' }}>
                         <span className="link-text" onClick={() => triggerEditPurchase(purchase)}>
                           {purchase.date ? purchase.date.replace(/-/g, '/') : ''} -{purchase.seq || 1}
                         </span>
@@ -1004,8 +1004,8 @@ export default function Inventory({
                       <td style={{ fontSize: '12px', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={purchase.itemName}>
                         {purchase.itemName}
                       </td>
-                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-pink)' }}>
-                        {(Number(purchase.supplyValue || 0) + Number(purchase.vat || 0)).toLocaleString()}원
+                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-pink)', whiteSpace: 'nowrap' }}>
+                        {(Number(purchase.supplyValue || 0) + Number(purchase.vat || 0)).toLocaleString()}
                       </td>
                       <td>{purchase.employee || '양유지'}</td>
                       <td style={{ textAlign: 'center' }}>-</td>
@@ -1448,7 +1448,7 @@ export default function Inventory({
                       type="text" 
                       className="form-control" 
                       disabled
-                      value={salesForm.supplyValue.toLocaleString() + ' 원'}
+                      value={salesForm.supplyValue.toLocaleString()}
                     />
                   </div>
                   <div className="form-group">
@@ -1457,7 +1457,7 @@ export default function Inventory({
                       type="text" 
                       className="form-control" 
                       disabled
-                      value={salesForm.vat.toLocaleString() + ' 원'}
+                      value={salesForm.vat.toLocaleString()}
                     />
                   </div>
                 </div>
@@ -1685,7 +1685,7 @@ export default function Inventory({
                       type="text" 
                       className="form-control" 
                       disabled
-                      value={purchaseForm.supplyValue.toLocaleString() + ' 원'}
+                      value={purchaseForm.supplyValue.toLocaleString()}
                     />
                   </div>
                   <div className="form-group">
@@ -1694,7 +1694,7 @@ export default function Inventory({
                       type="text" 
                       className="form-control" 
                       disabled
-                      value={purchaseForm.vat.toLocaleString() + ' 원'}
+                      value={purchaseForm.vat.toLocaleString()}
                     />
                   </div>
                 </div>

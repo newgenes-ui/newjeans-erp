@@ -432,13 +432,13 @@ export default function Accounting({
                                 <td>{tx.date}</td>
                                 <td style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{tx.accNum}</td>
                                 <td style={{ fontWeight: '500' }}>{tx.partner}</td>
-                                <td style={{ textAlign: 'right', color: tx.type === '입금' ? '#10b981' : 'inherit', fontWeight: tx.type === '입금' ? '700' : 'normal' }}>
-                                  {tx.type === '입금' ? `+${tx.amount.toLocaleString()}원` : '-'}
+                                <td style={{ textAlign: 'right', color: tx.type === '입금' ? '#10b981' : 'inherit', fontWeight: tx.type === '입금' ? '700' : 'normal', whiteSpace: 'nowrap' }}>
+                                  {tx.type === '입금' ? `+${tx.amount.toLocaleString()}` : '-'}
                                 </td>
-                                <td style={{ textAlign: 'right', color: tx.type === '출금' ? '#fb7185' : 'inherit', fontWeight: tx.type === '출금' ? '700' : 'normal' }}>
-                                  {tx.type === '출금' ? `-${tx.amount.toLocaleString()}원` : '-'}
+                                <td style={{ textAlign: 'right', color: tx.type === '출금' ? '#fb7185' : 'inherit', fontWeight: tx.type === '출금' ? '700' : 'normal', whiteSpace: 'nowrap' }}>
+                                  {tx.type === '출금' ? `-${tx.amount.toLocaleString()}` : '-'}
                                 </td>
-                                <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{tx.balance.toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{tx.balance.toLocaleString()}</td>
                                 <td style={{ textAlign: 'center' }}>
                                   {tx.posted ? (
                                     <span className="badge badge-green">전표완료</span>
@@ -504,10 +504,10 @@ export default function Accounting({
                                 <td>{tx.date}</td>
                                 <td>{tx.cardCorp}</td>
                                 <td style={{ fontWeight: '500' }}>{tx.partner}</td>
-                                <td style={{ textAlign: 'right', fontWeight: '600' }}>{tx.salesAmt.toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right', color: '#fb7185' }}>-{tx.fee.toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right', color: 'var(--primary-blue)', fontWeight: '700' }}>
-                                  {tx.netAmt.toLocaleString()}원
+                                <td style={{ textAlign: 'right', fontWeight: '600', whiteSpace: 'nowrap' }}>{tx.salesAmt.toLocaleString()}</td>
+                                <td style={{ textAlign: 'right', color: '#fb7185', whiteSpace: 'nowrap' }}>-{tx.fee.toLocaleString()}</td>
+                                <td style={{ textAlign: 'right', color: 'var(--primary-blue)', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                                  {tx.netAmt.toLocaleString()}
                                 </td>
                                 <td style={{ textAlign: 'center' }}>
                                   {tx.posted ? (
@@ -573,8 +573,8 @@ export default function Accounting({
                                 <td>{tx.date}</td>
                                 <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{tx.cardNum}</td>
                                 <td style={{ fontWeight: '500' }}>{tx.partner}</td>
-                                <td style={{ textAlign: 'right', fontWeight: '700', color: '#fb7185' }}>
-                                  -{tx.purchaseAmt.toLocaleString()}원
+                                <td style={{ textAlign: 'right', fontWeight: '700', color: '#fb7185', whiteSpace: 'nowrap' }}>
+                                  -{tx.purchaseAmt.toLocaleString()}
                                 </td>
                                 <td>{tx.cardUser}</td>
                                 <td style={{ textAlign: 'center' }}>
@@ -654,7 +654,7 @@ export default function Accounting({
                         <td style={{ fontWeight: '500' }}>{sale.customer}</td>
                         <td>{sale.itemName}</td>
                         <td style={{ textAlign: 'right' }}>{sale.qty.toLocaleString()}</td>
-                        <td style={{ textAlign: 'right', fontWeight: '600' }}>{(sale.supplyValue + sale.vat).toLocaleString()}원</td>
+                        <td style={{ textAlign: 'right', fontWeight: '600', whiteSpace: 'nowrap' }}>{(sale.supplyValue + sale.vat).toLocaleString()}</td>
                         <td style={{ textAlign: 'center' }}>
                           <button 
                             className="btn btn-primary" 
@@ -702,10 +702,10 @@ export default function Accounting({
                       <td>{inv.date}</td>
                       <td style={{ fontWeight: '500' }}>{inv.buyerName}</td>
                       <td>{inv.itemName}</td>
-                      <td style={{ textAlign: 'right' }}>{inv.supplyValue.toLocaleString()}원</td>
-                      <td style={{ textAlign: 'right' }}>{inv.vat.toLocaleString()}원</td>
-                      <td style={{ textAlign: 'right', fontWeight: '700' }}>
-                        {(inv.supplyValue + inv.vat).toLocaleString()}원
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>{inv.supplyValue.toLocaleString()}</td>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>{inv.vat.toLocaleString()}</td>
+                      <td style={{ textAlign: 'right', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                        {(inv.supplyValue + inv.vat).toLocaleString()}
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         {inv.status === '발행' ? (
@@ -825,9 +825,9 @@ export default function Accounting({
                   <div>
                     - 거래금액: {' '}
                     <span style={{ fontWeight: '700' }}>
-                      {Number(selectedTx.amount || selectedTx.salesAmt || selectedTx.purchaseAmt || 0).toLocaleString()} 원
+                      {Number(selectedTx.amount || selectedTx.salesAmt || selectedTx.purchaseAmt || 0).toLocaleString()}
                     </span>
-                    {selectedTx.fee ? ` (수수료 ${selectedTx.fee.toLocaleString()}원 제외 입금예정)` : ''}
+                    {selectedTx.fee ? ` (수수료 ${selectedTx.fee.toLocaleString()} 제외 입금예정)` : ''}
                   </div>
                 </div>
 
@@ -902,7 +902,7 @@ export default function Accounting({
                       type="text" 
                       className="form-control" 
                       disabled
-                      value={journalForm.supplyValue.toLocaleString() + ' 원'}
+                      value={journalForm.supplyValue.toLocaleString()}
                     />
                   </div>
                   <div className="form-group">
@@ -911,7 +911,7 @@ export default function Accounting({
                       type="text" 
                       className="form-control" 
                       disabled
-                      value={journalForm.vat.toLocaleString() + ' 원'}
+                      value={journalForm.vat.toLocaleString()}
                     />
                   </div>
                 </div>
@@ -1223,7 +1223,7 @@ export default function Accounting({
                       {/* --- 합계금액 및 결제방식 데이터 행 --- */}
                       <tr style={{ height: '26px', fontWeight: 'bold', textAlign: 'center' }}>
                         <td colSpan="50" style={{ color: '#1a56db', verticalAlign: 'middle' }}>
-                          {(selectedInvoice.supplyValue + selectedInvoice.vat).toLocaleString()} 원
+                          {(selectedInvoice.supplyValue + selectedInvoice.vat).toLocaleString()}
                         </td>
                         <td colSpan="25" style={{ verticalAlign: 'middle' }}></td>
                         <td colSpan="25" style={{ verticalAlign: 'middle' }}></td>
