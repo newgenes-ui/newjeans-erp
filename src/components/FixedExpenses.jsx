@@ -745,12 +745,12 @@ export default function FixedExpenses({
                 <table className="erp-table">
                   <thead>
                     <tr>
-                      <th style={{ textAlign: 'center' }}>월</th>
+                      <th style={{ textAlign: 'center' }}>월별</th>
                       <th>성명</th>
                       <th>직급</th>
                       <th style={{ textAlign: 'right' }}>급여</th>
                       <th style={{ textAlign: 'right' }}>4대보험료</th>
-                      <th style={{ textAlign: 'right' }}>법인카드사용금액</th>
+                      <th style={{ textAlign: 'right' }}>법인카드 사용금액</th>
                       <th style={{ textAlign: 'right' }}>월합계</th>
                       <th style={{ textAlign: 'center' }}>작업</th>
                     </tr>
@@ -1167,7 +1167,7 @@ export default function FixedExpenses({
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">법인카드사용금액</label>
+                  <label className="form-label">법인카드 사용금액</label>
                   <input 
                     type="number" 
                     className="form-control" 
