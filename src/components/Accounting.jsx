@@ -19,11 +19,33 @@ export default function Accounting({
   setIsIbkLinked,
   isCreLinked,
   setIsCreLinked,
-  logActivity
+  logActivity,
+  employees = [],
+  setEmployees
 }) {
-  const [activeSubTab, setActiveSubTab] = useState('sync'); // 'sync', 'tax'
+  const [activeSubTab, setActiveSubTab] = useState('sync'); // 'sync', 'tax', 'fixed_expenses'
   const [syncSubTab, setSyncSubTab] = useState('bank'); // 'bank', 'cardsales', 'cardpurchase'
+  const [fixedSubTab, setFixedSubTab] = useState('salary'); // 'salary', 'card'
   
+  // Employee Modal
+  const [showEmployeeModal, setShowEmployeeModal] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState(null);
+  const [employeeForm, setEmployeeForm] = useState({
+    name: '',
+    position: '',
+    baseSalary: 0
+  });
+
+  // Card Purchase Modal
+  const [showCardPurchaseModal, setShowCardPurchaseModal] = useState(false);
+  const [cardPurchaseForm, setCardPurchaseForm] = useState({
+    date: new Date().toISOString().substring(0, 10),
+    cardNum: 'KB국민법인카드 (9482)',
+    partner: '',
+    purchaseAmt: 0,
+    cardUser: '양유지'
+  });
+
   // Simulated Loading States
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncTarget, setSyncTarget] = useState(''); // 'IBK', 'CRE'
@@ -268,6 +290,92 @@ export default function Accounting({
     setShowInvoiceModal(true);
   };
 
+  // --- FIXED EXPENSES CRUD HANDLERS ---
+  const handleEmployeeSubmit = (e) => {
+    e.preventDefault();
+    if (!employeeForm.name || !employeeForm.position || employeeForm.baseSalary <= 0) {
+      alert('모든 필수 정보를 입력해 주세요.');
+      return;
+    }
+
+    const base = Number(employeeForm.baseSalary);
+    const pension = Math.round(base * 0.045);
+    const health = Math.round(base * 0.0354);
+    const employment = Math.round(base * 0.009);
+    const netPay = base - pension - health - employment;
+
+    if (editingEmployee) {
+      setEmployees(prev => prev.map(emp => emp.id === editingEmployee.id ? {
+        ...emp,
+        name: employeeForm.name,
+        position: employeeForm.position,
+        baseSalary: base,
+        pension,
+        health,
+        employment,
+        netPay
+      } : emp));
+      logActivity('회계', `고정지출: 직원 정보 수정 (${employeeForm.name})`);
+      setEditingEmployee(null);
+    } else {
+      const newEmp = {
+        id: 'EMP-' + Date.now(),
+        name: employeeForm.name,
+        position: employeeForm.position,
+        baseSalary: base,
+        pension,
+        health,
+        employment,
+        netPay,
+        cardUsage: 0
+      };
+      setEmployees(prev => [...prev, newEmp]);
+      logActivity('회계', `고정지출: 신규 직원 등록 (${employeeForm.name})`);
+    }
+
+    setShowEmployeeModal(false);
+    setEmployeeForm({ name: '', position: '', baseSalary: 0 });
+  };
+
+  const handleDeleteEmployee = (id) => {
+    if (confirm('정말로 이 직원 정보를 삭제하시겠습니까?')) {
+      const deleted = employees.find(emp => emp.id === id);
+      setEmployees(prev => prev.filter(emp => emp.id !== id));
+      logActivity('회계', `고정지출: 직원 정보 삭제 (${deleted ? deleted.name : id})`);
+    }
+  };
+
+  const handleCardPurchaseSubmit = (e) => {
+    e.preventDefault();
+    if (!cardPurchaseForm.partner || cardPurchaseForm.purchaseAmt <= 0) {
+      alert('사용처와 사용 금액을 확인해 주세요.');
+      return;
+    }
+
+    const newTx = {
+      id: 'CP-' + Date.now(),
+      date: cardPurchaseForm.date,
+      cardNum: cardPurchaseForm.cardNum,
+      partner: cardPurchaseForm.partner,
+      purchaseAmt: Number(cardPurchaseForm.purchaseAmt),
+      cardUser: cardPurchaseForm.cardUser,
+      synced: true,
+      posted: false,
+      slipId: ''
+    };
+
+    setCardPurchaseTransactions(prev => [newTx, ...prev]);
+    logActivity('회계', `고정지출: 법인카드 승인 등록 (${cardPurchaseForm.partner} - ${Number(cardPurchaseForm.purchaseAmt).toLocaleString()}원)`);
+    setShowCardPurchaseModal(false);
+    setCardPurchaseForm({
+      date: new Date().toISOString().substring(0, 10),
+      cardNum: 'KB국민법인카드 (9482)',
+      partner: '',
+      purchaseAmt: 0,
+      cardUser: '양유지'
+    });
+  };
+
   return (
     <div className="content-area">
       <div className="page-title-container">
@@ -288,6 +396,12 @@ export default function Accounting({
           onClick={() => setActiveSubTab('tax')}
         >
           전자세금계산서 관리
+        </button>
+        <button 
+          className={`tab-btn ${activeSubTab === 'fixed_expenses' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('fixed_expenses')}
+        >
+          고정 지출 관리 (급여/4대보험/법카)
         </button>
       </div>
 
@@ -932,6 +1046,384 @@ export default function Accounting({
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowJournalModal(false)}>취소</button>
                 <button type="submit" className="btn btn-primary">전표 생성 승인</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- SUBTAB 3: 고정 지출 관리 --- */}
+      {activeSubTab === 'fixed_expenses' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          {/* KPI Summary Grid */}
+          {(() => {
+            const totalSalary = employees.reduce((acc, curr) => acc + curr.baseSalary, 0);
+            const totalNetPay = employees.reduce((acc, curr) => acc + curr.netPay, 0);
+            const totalInsurances = employees.reduce((acc, curr) => acc + (curr.pension + curr.health + curr.employment), 0);
+            
+            const totalCardUsage = cardPurchaseTransactions
+              .filter(tx => tx.synced)
+              .reduce((acc, curr) => acc + curr.purchaseAmt, 0);
+            
+            const grandTotalFixed = totalSalary + totalCardUsage;
+
+            return (
+              <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                <div className="kpi-card" style={{ borderLeft: '4px solid var(--primary-blue, #1a56db)' }}>
+                  <div className="kpi-header">
+                    <span className="kpi-title">총 고정 지출액 (급여+법카)</span>
+                    <span className="kpi-icon">💸</span>
+                  </div>
+                  <div className="kpi-value">{grandTotalFixed.toLocaleString()}</div>
+                  <div className="kpi-subtext">기본급 + 법인카드 사용액 합산</div>
+                </div>
+
+                <div className="kpi-card">
+                  <div className="kpi-header">
+                    <span className="kpi-title">직원 총 급여액 (기본급)</span>
+                    <span className="kpi-icon">👥</span>
+                  </div>
+                  <div className="kpi-value">{totalSalary.toLocaleString()}</div>
+                  <div className="kpi-subtext">직원 {employees.length}명 기본급 합계</div>
+                </div>
+
+                <div className="kpi-card">
+                  <div className="kpi-header">
+                    <span className="kpi-title">4대보험 공제액 합계</span>
+                    <span className="kpi-icon">🛡️</span>
+                  </div>
+                  <div className="kpi-value">{totalInsurances.toLocaleString()}</div>
+                  <div className="kpi-subtext">국민 + 건강 + 고용보험 본인 부담금</div>
+                </div>
+
+                <div className="kpi-card">
+                  <div className="kpi-header">
+                    <span className="kpi-title">법인카드 총 사용액</span>
+                    <span className="kpi-icon">💳</span>
+                  </div>
+                  <div className="kpi-value">{totalCardUsage.toLocaleString()}</div>
+                  <div className="kpi-subtext">여신협회 동기화 내역 및 수동등록 합계</div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Sub-tab Selection */}
+          <div className="panel-card" style={{ padding: '20px' }}>
+            <div className="panel-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', marginBottom: '20px' }}>
+              <div className="btn-group">
+                <button 
+                  className={`btn ${fixedSubTab === 'salary' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setFixedSubTab('salary')}
+                >
+                  직원별 급여 및 4대보험 명세
+                </button>
+                <button 
+                  className={`btn ${fixedSubTab === 'card' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setFixedSubTab('card')}
+                >
+                  법인카드 지출 관리
+                </button>
+              </div>
+            </div>
+
+            {/* 3-1. 직원 급여 및 4대보험 테이블 */}
+            {fixedSubTab === 'salary' && (
+              <div>
+                <div className="panel-header" style={{ marginBottom: '16px' }}>
+                  <h3 className="panel-title" style={{ fontSize: '16px' }}>직원 급여 대장 및 4대보험 공제 현황</h3>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setEditingEmployee(null);
+                      setEmployeeForm({ name: '', position: '', baseSalary: 0 });
+                      setShowEmployeeModal(true);
+                    }}
+                  >
+                    + 신규 직원 등록
+                  </button>
+                </div>
+                <div className="table-responsive">
+                  <table className="erp-table">
+                    <thead>
+                      <tr>
+                        <th>사원ID</th>
+                        <th>성명</th>
+                        <th>직급</th>
+                        <th style={{ textAlign: 'right' }}>기본급</th>
+                        <th style={{ textAlign: 'right' }}>국민연금 (4.5%)</th>
+                        <th style={{ textAlign: 'right' }}>건강보험 (3.54%)</th>
+                        <th style={{ textAlign: 'right' }}>고용보험 (0.9%)</th>
+                        <th style={{ textAlign: 'right' }}>실수령액</th>
+                        <th style={{ textAlign: 'center' }}>관리</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {employees.length === 0 ? (
+                        <tr>
+                          <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>
+                            등록된 직원 정보가 없습니다.
+                          </td>
+                        </tr>
+                      ) : (
+                        employees.map(emp => (
+                          <tr key={emp.id}>
+                            <td style={{ fontWeight: '600' }}>{emp.id}</td>
+                            <td style={{ fontWeight: '500' }}>{emp.name}</td>
+                            <td>{emp.position}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '500' }}>{emp.baseSalary.toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{emp.pension.toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{emp.health.toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{emp.employment.toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-blue)' }}>{emp.netPay.toLocaleString()}</td>
+                            <td style={{ textAlign: 'center' }}>
+                              <div className="btn-group" style={{ justifyContent: 'center', gap: '4px' }}>
+                                <button 
+                                  className="btn btn-secondary" 
+                                  style={{ padding: '2px 8px', fontSize: '11px' }}
+                                  onClick={() => {
+                                    setEditingEmployee(emp);
+                                    setEmployeeForm({
+                                      name: emp.name,
+                                      position: emp.position,
+                                      baseSalary: emp.baseSalary
+                                    });
+                                    setShowEmployeeModal(true);
+                                  }}
+                                >
+                                  수정
+                                </button>
+                                <button 
+                                  className="btn btn-danger" 
+                                  style={{ padding: '2px 8px', fontSize: '11px' }}
+                                  onClick={() => handleDeleteEmployee(emp.id)}
+                                >
+                                  삭제
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 3-2. 법인카드 지출 리스트 */}
+            {fixedSubTab === 'card' && (
+              <div>
+                <div className="panel-header" style={{ marginBottom: '16px' }}>
+                  <h3 className="panel-title" style={{ fontSize: '16px' }}>법인카드 사용 내역 (여신금융협회 연동)</h3>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setCardPurchaseForm({
+                        date: new Date().toISOString().substring(0, 10),
+                        cardNum: 'KB국민법인카드 (9482)',
+                        partner: '',
+                        purchaseAmt: 0,
+                        cardUser: '양유지'
+                      });
+                      setShowCardPurchaseModal(true);
+                    }}
+                  >
+                    + 법인카드 사용 등록
+                  </button>
+                </div>
+                <div className="table-responsive">
+                  <table className="erp-table">
+                    <thead>
+                      <tr>
+                        <th>승인번호</th>
+                        <th>승인일자</th>
+                        <th>법인카드번호</th>
+                        <th>사용처 (가맹점)</th>
+                        <th>사용자 (사원)</th>
+                        <th style={{ textAlign: 'right' }}>승인금액</th>
+                        <th style={{ textAlign: 'center' }}>전표처리상태</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cardPurchaseTransactions.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>
+                            등록되었거나 연동된 법인카드 승인 내역이 없습니다.
+                          </td>
+                        </tr>
+                      ) : (
+                        cardPurchaseTransactions.map(tx => (
+                          <tr key={tx.id} className={tx.posted ? '' : 'synced-item-highlight'}>
+                            <td style={{ fontWeight: '600' }}>{tx.id}</td>
+                            <td>{tx.date}</td>
+                            <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{tx.cardNum}</td>
+                            <td style={{ fontWeight: '500' }}>{tx.partner}</td>
+                            <td>{tx.cardUser}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '700', color: '#fb7185' }}>
+                              {tx.purchaseAmt.toLocaleString()}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              {tx.posted ? (
+                                <span className="badge badge-green">전표완료 ({tx.slipId})</span>
+                              ) : (
+                                <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                  <span className="badge badge-pink">미분개</span>
+                                  <button 
+                                    className="btn btn-primary" 
+                                    style={{ padding: '2px 6px', fontSize: '11px' }}
+                                    onClick={() => triggerJournal(tx, 'purchase')}
+                                  >
+                                    전표분개
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL 5: 신규 직원 등록 / 수정 모달 --- */}
+      {showEmployeeModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '450px' }}>
+            <div className="modal-header">
+              <h2 className="panel-title">{editingEmployee ? '직원 정보 수정' : '신규 직원 등록'}</h2>
+              <button className="modal-close" onClick={() => setShowEmployeeModal(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleEmployeeSubmit}>
+              <div className="modal-body">
+                <div className="form-group" style={{ marginBottom: '12px' }}>
+                  <label className="form-label">사원 성명 *</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    required
+                    value={employeeForm.name}
+                    onChange={(e) => setEmployeeForm(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="예: 다니엘"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: '12px' }}>
+                  <label className="form-label">직급/부서 *</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    required
+                    value={employeeForm.position}
+                    onChange={(e) => setEmployeeForm(prev => ({ ...prev, position: e.target.value }))}
+                    placeholder="예: 실장 (매니지먼트)"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">월 기본급 (원) *</label>
+                  <input 
+                    type="number" 
+                    className="form-control" 
+                    required
+                    min="1"
+                    value={employeeForm.baseSalary}
+                    onChange={(e) => setEmployeeForm(prev => ({ ...prev, baseSalary: Number(e.target.value) }))}
+                    placeholder="예: 3500000"
+                  />
+                </div>
+                <div style={{ marginTop: '16px', background: 'var(--border-color)', padding: '12px', borderRadius: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <div style={{ fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-primary)' }}>4대보험 자동 공제 항목 (근로자 부담분)</div>
+                  <div>- 국민연금 (4.5%): {Math.round(employeeForm.baseSalary * 0.045).toLocaleString()}</div>
+                  <div>- 건강보험 (3.54%): {Math.round(employeeForm.baseSalary * 0.0354).toLocaleString()}</div>
+                  <div>- 고용보험 (0.9%): {Math.round(employeeForm.baseSalary * 0.009).toLocaleString()}</div>
+                  <div style={{ marginTop: '6px', borderTop: '1px solid var(--text-muted)', paddingTop: '6px', fontWeight: 'bold', color: 'var(--primary-blue)' }}>
+                    - 예상 실수령액: {(employeeForm.baseSalary - Math.round(employeeForm.baseSalary * 0.045) - Math.round(employeeForm.baseSalary * 0.0354) - Math.round(employeeForm.baseSalary * 0.009)).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEmployeeModal(false)}>취소</button>
+                <button type="submit" className="btn btn-primary">{editingEmployee ? '수정 완료' : '직원 추가'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL 6: 법인카드 승인 등록 모달 --- */}
+      {showCardPurchaseModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '450px' }}>
+            <div className="modal-header">
+              <h2 className="panel-title">법인카드 사용 등록</h2>
+              <button className="modal-close" onClick={() => setShowCardPurchaseModal(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleCardPurchaseSubmit}>
+              <div className="modal-body">
+                <div className="form-group" style={{ marginBottom: '12px' }}>
+                  <label className="form-label">사용 일자</label>
+                  <input 
+                    type="date" 
+                    className="form-control" 
+                    required
+                    value={cardPurchaseForm.date}
+                    onChange={(e) => setCardPurchaseForm(prev => ({ ...prev, date: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: '12px' }}>
+                  <label className="form-label">법인카드 선택</label>
+                  <select 
+                    className="form-control"
+                    value={cardPurchaseForm.cardNum}
+                    onChange={(e) => setCardPurchaseForm(prev => ({ ...prev, cardNum: e.target.value }))}
+                  >
+                    <option value="KB국민법인카드 (9482)">KB국민법인카드 (9482)</option>
+                    <option value="신한법인카드 (1029)">신한법인카드 (1029)</option>
+                    <option value="현대법인카드 (8842)">현대법인카드 (8842)</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: '12px' }}>
+                  <label className="form-label">사용처 (가맹점) *</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    required
+                    value={cardPurchaseForm.partner}
+                    onChange={(e) => setCardPurchaseForm(prev => ({ ...prev, partner: e.target.value }))}
+                    placeholder="예: 삼거리식당, AWS 클라우드"
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: '12px' }}>
+                  <label className="form-label">사용자 (사원 성명)</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={cardPurchaseForm.cardUser}
+                    onChange={(e) => setCardPurchaseForm(prev => ({ ...prev, cardUser: e.target.value }))}
+                    placeholder="사용 사원 이름"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">사용 금액 *</label>
+                  <input 
+                    type="number" 
+                    className="form-control" 
+                    required
+                    min="1"
+                    value={cardPurchaseForm.purchaseAmt}
+                    onChange={(e) => setCardPurchaseForm(prev => ({ ...prev, purchaseAmt: Number(e.target.value) }))}
+                    placeholder="결제 금액 입력"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCardPurchaseModal(false)}>취소</button>
+                <button type="submit" className="btn btn-primary">등록 저장</button>
               </div>
             </form>
           </div>

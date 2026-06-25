@@ -3,7 +3,7 @@ import Inventory from './components/Inventory';
 import Accounting from './components/Accounting';
 
 // --- DATABASE VERSION FOR SEED RESET ---
-const DB_VERSION = '12';
+const DB_VERSION = '13';
 
 import initialPartners from './data/partners.json';
 import initialItems from './data/items.json';
@@ -76,6 +76,7 @@ export default function App() {
       localStorage.removeItem('nj_bank_tx');
       localStorage.removeItem('nj_card_sales');
       localStorage.removeItem('nj_card_purchase');
+      localStorage.removeItem('nj_employees');
       localStorage.setItem('nj_db_version', DB_VERSION);
       // Reload page to apply clean states
       window.location.reload();
@@ -139,6 +140,21 @@ export default function App() {
   const [cardPurchaseTransactions, setCardPurchaseTransactions] = useState(() => {
     const local = localStorage.getItem('nj_card_purchase');
     return local ? JSON.parse(local) : initialCardPurchases;
+  });
+
+  const [employees, setEmployees] = useState(() => {
+    const local = localStorage.getItem('nj_employees');
+    if (local) return JSON.parse(local);
+    return [
+      { id: 'EMP-001', name: '최성욱', position: '실장 (매니지먼트)', baseSalary: 6500000, pension: 292500, health: 230100, employment: 58500, netPay: 5918900, cardUsage: 1250000 },
+      { id: 'EMP-002', name: '김주연', position: '주임 (콘텐츠제작)', baseSalary: 3800000, pension: 171000, health: 134520, employment: 34200, netPay: 3460280, cardUsage: 450000 },
+      { id: 'EMP-003', name: '양유지', position: '팀원 (경영지원)', baseSalary: 3200000, pension: 144000, health: 113280, employment: 28800, netPay: 2913920, cardUsage: 180000 },
+      { id: 'EMP-004', name: '민지', position: '아티스트', baseSalary: 12000000, pension: 540000, health: 424800, employment: 108000, netPay: 10927200, cardUsage: 2500000 },
+      { id: 'EMP-005', name: '하니', position: '아티스트', baseSalary: 12000000, pension: 540000, health: 424800, employment: 108000, netPay: 10927200, cardUsage: 2100000 },
+      { id: 'EMP-006', name: '다니엘', position: '아티스트', baseSalary: 12000000, pension: 540000, health: 424800, employment: 108000, netPay: 10927200, cardUsage: 1900000 },
+      { id: 'EMP-007', name: '해린', position: '아티스트', baseSalary: 12000000, pension: 540000, health: 424800, employment: 108000, netPay: 10927200, cardUsage: 3200000 },
+      { id: 'EMP-008', name: '혜인', position: '아티스트', baseSalary: 12000000, pension: 540000, health: 424800, employment: 108000, netPay: 10927200, cardUsage: 1500000 }
+    ];
   });
 
   // Linkage Connection State
@@ -206,6 +222,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('nj_system_logs', JSON.stringify(systemLogs));
   }, [systemLogs]);
+
+  useEffect(() => {
+    localStorage.setItem('nj_employees', JSON.stringify(employees));
+  }, [employees]);
 
   // Dark/Light Theme toggler
   useEffect(() => {
@@ -600,6 +620,8 @@ export default function App() {
               isCreLinked={isCreLinked}
               setIsCreLinked={setIsCreLinked}
               logActivity={logActivity}
+              employees={employees}
+              setEmployees={setEmployees}
             />
           )}
 
