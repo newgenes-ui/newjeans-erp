@@ -4,7 +4,7 @@ import Accounting from './components/Accounting';
 import FixedExpenses from './components/FixedExpenses';
 
 // --- DATABASE VERSION FOR SEED RESET ---
-const DB_VERSION = '15';
+const DB_VERSION = '16';
 
 import initialPartners from './data/partners.json';
 import initialItems from './data/items.json';
@@ -170,6 +170,21 @@ export default function App() {
     }
     return [
       {
+        month: '2026-06',
+        tax: 1650000,
+        corporatePhone: 43936,
+        officeRent: 1100000,
+        maintenance: 281210,
+        equipmentRental: 155900,
+        erpServiceFee: 59730,
+        avanteRental: 450000,
+        rayInstallment: 280000,
+        smallBizLoanInterest: 175000,
+        ibkLoanInterest: 310000,
+        kiboLoanInterest: 215000,
+        creditLoanInterest: 245000
+      },
+      {
         month: '2026-05',
         tax: 0,
         corporatePhone: 43936,
@@ -185,19 +200,64 @@ export default function App() {
         creditLoanInterest: 250000
       },
       {
-        month: '2026-06',
-        tax: 1650000,
-        corporatePhone: 43936,
+        month: '2026-04',
+        tax: 165000,
+        corporatePhone: 64768,
         officeRent: 1100000,
-        maintenance: 281210,
+        maintenance: 333020,
         equipmentRental: 155900,
         erpServiceFee: 59730,
         avanteRental: 450000,
         rayInstallment: 280000,
-        smallBizLoanInterest: 175000,
-        ibkLoanInterest: 310000,
-        kiboLoanInterest: 215000,
-        creditLoanInterest: 245000
+        smallBizLoanInterest: 182000,
+        ibkLoanInterest: 325000,
+        kiboLoanInterest: 224000,
+        creditLoanInterest: 255000
+      },
+      {
+        month: '2026-03',
+        tax: 2332000,
+        corporatePhone: 65599,
+        officeRent: 1100000,
+        maintenance: 377860,
+        equipmentRental: 155900,
+        erpServiceFee: 59730,
+        avanteRental: 450000,
+        rayInstallment: 280000,
+        smallBizLoanInterest: 185000,
+        ibkLoanInterest: 330000,
+        kiboLoanInterest: 228000,
+        creditLoanInterest: 260000
+      },
+      {
+        month: '2026-02',
+        tax: 132000,
+        corporatePhone: 65953,
+        officeRent: 1100000,
+        maintenance: 430680,
+        equipmentRental: 155900,
+        erpServiceFee: 59730,
+        avanteRental: 450000,
+        rayInstallment: 280000,
+        smallBizLoanInterest: 188000,
+        ibkLoanInterest: 335000,
+        kiboLoanInterest: 232000,
+        creditLoanInterest: 265000
+      },
+      {
+        month: '2026-01',
+        tax: 132000,
+        corporatePhone: 66785,
+        officeRent: 1100000,
+        maintenance: 393990,
+        equipmentRental: 155900,
+        erpServiceFee: 59730,
+        avanteRental: 450000,
+        rayInstallment: 280000,
+        smallBizLoanInterest: 191000,
+        ibkLoanInterest: 340000,
+        kiboLoanInterest: 236000,
+        creditLoanInterest: 270000
       }
     ];
   });
