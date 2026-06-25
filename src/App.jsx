@@ -161,7 +161,13 @@ export default function App() {
 
   const [officeExpenses, setOfficeExpenses] = useState(() => {
     const local = localStorage.getItem('nj_office_expenses');
-    if (local) return JSON.parse(local);
+    if (local) {
+      const parsed = JSON.parse(local);
+      const needsPatch = parsed.some(o => !('officeRent' in o));
+      if (!needsPatch) {
+        return parsed;
+      }
+    }
     return [
       {
         month: '2026-05',

@@ -94,18 +94,17 @@ export default function FixedExpenses({
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target.result;
-      
-      if (!text.includes('공급자사업자등록번호') || !text.includes('상호')) {
-        alert('올바른 국세청 세금계산서 CSV 파일이 아닙니다.');
-        return;
-      }
-
-      try {
+    const readWithEncoding = (encoding) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target.result;
         const rows = parseCSV(text);
-        if (rows.length < 6) {
+        
+        if (rows.length < 2) {
+          if (encoding === 'UTF-8') {
+            readWithEncoding('EUC-KR');
+            return;
+          }
           alert('가져올 데이터가 부족합니다.');
           return;
         }
@@ -119,7 +118,13 @@ export default function FixedExpenses({
           }
         }
 
+        // Try fallback if header not found
         if (headerRowIdx === -1) {
+          if (encoding === 'UTF-8') {
+            console.log("UTF-8 header match failed. Retrying with EUC-KR...");
+            readWithEncoding('EUC-KR');
+            return;
+          }
           alert('CSV 헤더(월별, 상호, 합계금액 등)를 찾을 수 없습니다.');
           return;
         }
@@ -191,7 +196,6 @@ export default function FixedExpenses({
             const existingIdx = updated.findIndex(o => o.month === month);
 
             if (existingIdx !== -1) {
-              // Preserve loan interests and car expenses, override others
               const existing = updated[existingIdx];
               updated[existingIdx] = {
                 ...existing,
@@ -203,7 +207,6 @@ export default function FixedExpenses({
                 erpServiceFee: parsedExpenses.erpServiceFee
               };
             } else {
-              // Create new month log
               updated.push({
                 month,
                 tax: parsedExpenses.tax,
@@ -227,12 +230,19 @@ export default function FixedExpenses({
 
         logActivity('지출', `국세청 사무실 비용 CSV 가져오기 완료 (${Object.keys(monthlyData).join(', ')} 적용)`);
         alert('국세청 사무실 비용 CSV 파일이 성공적으로 파싱되어 적용되었습니다.');
-      } catch (err) {
-        console.error(err);
-        alert('CSV 파일 파싱 중 에러가 발생했습니다: ' + err.message);
-      }
+      };
+      reader.onerror = () => {
+        if (encoding === 'UTF-8') {
+          readWithEncoding('EUC-KR');
+        } else {
+          alert('CSV 파일을 읽는 동안 오류가 발생했습니다.');
+        }
+      };
+      reader.readAsText(file, encoding);
     };
-    reader.readAsText(file, 'EUC-KR'); // NTS CSV uses EUC-KR encoding in Korea
+
+    // Start with UTF-8
+    readWithEncoding('UTF-8');
   };
 
   // --- EMPLOYEE CRUD HANDLERS ---
