@@ -13,7 +13,7 @@ export default function FixedExpenses({
   setPurchases,
   logActivity
 }) {
-  const [fixedTab, setFixedTab] = useState('employee'); // 'employee', 'office'
+  const [fixedTab, setFixedTab] = useState('employee'); // 'employee', 'office', 'partner'
   
   // Employee Modal States
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
@@ -44,6 +44,22 @@ export default function FixedExpenses({
     ibkLoanInterest: 0,
     kiboLoanInterest: 0,
     creditLoanInterest: 0
+  });
+
+  // Partner Expenses Modal States
+  const [showPartnerModal, setShowPartnerModal] = useState(false);
+  const [editingPartner, setEditingPartner] = useState(null);
+  const [partnerForm, setPartnerForm] = useState({
+    month: new Date().toISOString().substring(0, 7),
+    samsungOA: 0,
+    sungjin: 0,
+    gwangmyeongG: 0,
+    taxService: 0,
+    ecount: 0,
+    bsTech: 0,
+    chungho: 0,
+    kt: 0,
+    skt: 0
   });
 
   // Card Purchase Manual Modal
@@ -164,7 +180,16 @@ export default function FixedExpenses({
               officeRent: 0,
               maintenance: 0,
               equipmentRental: 0,
-              erpServiceFee: 0
+              erpServiceFee: 0,
+              samsungOA: 0,
+              sungjin: 0,
+              gwangmyeongG: 0,
+              taxService: 0,
+              ecount: 0,
+              bsTech: 0,
+              chungho: 0,
+              kt: 0,
+              skt: 0
             };
           }
 
@@ -173,17 +198,35 @@ export default function FixedExpenses({
           // Mapping rules by supplier keyword
           if (supplierName.includes('비에스테크광명')) {
             target.officeRent += totalAmt;
+            target.bsTech += totalAmt;
           } else if (supplierName.includes('광명g타워') || supplierName.includes('광명G타워')) {
             target.maintenance += totalAmt;
-          } else if (supplierName.includes('삼성오에이') || supplierName.includes('청호나이스')) {
+            target.gwangmyeongG += totalAmt;
+          } else if (supplierName.includes('삼성오에이')) {
             target.equipmentRental += totalAmt;
-          } else if (supplierName.includes('이카운트') || supplierName.includes('성진정보텍')) {
+            target.samsungOA += totalAmt;
+          } else if (supplierName.includes('청호나이스')) {
+            target.equipmentRental += totalAmt;
+            target.chungho += totalAmt;
+          } else if (supplierName.includes('이카운트')) {
             target.erpServiceFee += totalAmt;
-          } else if (supplierName.includes('케이티') || supplierName.includes('에스케이텔레콤')) {
+            target.ecount += totalAmt;
+          } else if (supplierName.includes('성진정보텍')) {
+            target.erpServiceFee += totalAmt;
+            target.sungjin += totalAmt;
+          } else if (supplierName.includes('케이티')) {
             target.corporatePhone += totalAmt;
+            target.kt += totalAmt;
+          } else if (supplierName.includes('에스케이텔레콤') || supplierName.includes('에스케이델레콤')) {
+            target.corporatePhone += totalAmt;
+            target.skt += totalAmt;
+          } else if (supplierName.includes('기업세무회계') || supplierName.includes('세무') || supplierName.includes('회계')) {
+            target.tax += totalAmt;
+            target.taxService += totalAmt;
           } else {
             // Tax advisor or others go to tax
             target.tax += totalAmt;
+            target.taxService += totalAmt;
           }
         }
 
@@ -204,7 +247,16 @@ export default function FixedExpenses({
                 officeRent: parsedExpenses.officeRent,
                 maintenance: parsedExpenses.maintenance,
                 equipmentRental: parsedExpenses.equipmentRental,
-                erpServiceFee: parsedExpenses.erpServiceFee
+                erpServiceFee: parsedExpenses.erpServiceFee,
+                samsungOA: parsedExpenses.samsungOA,
+                sungjin: parsedExpenses.sungjin,
+                gwangmyeongG: parsedExpenses.gwangmyeongG,
+                taxService: parsedExpenses.taxService,
+                ecount: parsedExpenses.ecount,
+                bsTech: parsedExpenses.bsTech,
+                chungho: parsedExpenses.chungho,
+                kt: parsedExpenses.kt,
+                skt: parsedExpenses.skt
               };
             } else {
               updated.push({
@@ -220,7 +272,16 @@ export default function FixedExpenses({
                 smallBizLoanInterest: 0,
                 ibkLoanInterest: 0,
                 kiboLoanInterest: 0,
-                creditLoanInterest: 0
+                creditLoanInterest: 0,
+                samsungOA: parsedExpenses.samsungOA,
+                sungjin: parsedExpenses.sungjin,
+                gwangmyeongG: parsedExpenses.gwangmyeongG,
+                taxService: parsedExpenses.taxService,
+                ecount: parsedExpenses.ecount,
+                bsTech: parsedExpenses.bsTech,
+                chungho: parsedExpenses.chungho,
+                kt: parsedExpenses.kt,
+                skt: parsedExpenses.skt
               });
             }
           });
@@ -336,20 +397,45 @@ export default function FixedExpenses({
       return;
     }
 
+    const rent = Number(officeForm.officeRent);
+    const maint = Number(officeForm.maintenance);
+    const taxVal = Number(officeForm.tax);
+    const equip = Number(officeForm.equipmentRental);
+    const erp = Number(officeForm.erpServiceFee);
+    const phone = Number(officeForm.corporatePhone);
+
+    const samsungOA = Math.round(equip * (110000 / 155900));
+    const chungho = equip - samsungOA;
+    const sungjin = Math.round(erp * (15730 / 59730));
+    const ecount = erp - sungjin;
+    const kt = Math.round(phone * (44000 / 66000));
+    const skt = phone - kt;
+
     const record = {
       month: officeForm.month,
-      tax: Number(officeForm.tax),
-      corporatePhone: Number(officeForm.corporatePhone),
-      officeRent: Number(officeForm.officeRent),
-      maintenance: Number(officeForm.maintenance),
-      equipmentRental: Number(officeForm.equipmentRental),
-      erpServiceFee: Number(officeForm.erpServiceFee),
+      tax: taxVal,
+      corporatePhone: phone,
+      officeRent: rent,
+      maintenance: maint,
+      equipmentRental: equip,
+      erpServiceFee: erp,
       avanteRental: Number(officeForm.avanteRental),
       rayInstallment: Number(officeForm.rayInstallment),
       smallBizLoanInterest: Number(officeForm.smallBizLoanInterest),
       ibkLoanInterest: Number(officeForm.ibkLoanInterest),
       kiboLoanInterest: Number(officeForm.kiboLoanInterest),
-      creditLoanInterest: Number(officeForm.creditLoanInterest)
+      creditLoanInterest: Number(officeForm.creditLoanInterest),
+      
+      // Synchronize partner fields
+      bsTech: rent,
+      gwangmyeongG: maint,
+      taxService: taxVal,
+      samsungOA,
+      chungho,
+      sungjin,
+      ecount,
+      kt,
+      skt
     };
 
     const exists = officeExpenses.some(o => o.month === officeForm.month);
@@ -373,6 +459,85 @@ export default function FixedExpenses({
 
     setShowOfficeModal(false);
     setEditingOffice(null);
+  };
+
+  // --- PARTNER EXPENSES HANDLERS ---
+  const handlePartnerSubmit = (e) => {
+    e.preventDefault();
+    if (!partnerForm.month) {
+      alert('년월을 선택해 주세요.');
+      return;
+    }
+
+    const samsungOA = Number(partnerForm.samsungOA);
+    const sungjin = Number(partnerForm.sungjin);
+    const gwangmyeongG = Number(partnerForm.gwangmyeongG);
+    const taxService = Number(partnerForm.taxService);
+    const ecount = Number(partnerForm.ecount);
+    const bsTech = Number(partnerForm.bsTech);
+    const chungho = Number(partnerForm.chungho);
+    const kt = Number(partnerForm.kt);
+    const skt = Number(partnerForm.skt);
+
+    // find existing or default values for car & loans
+    const existing = officeExpenses.find(o => o.month === partnerForm.month) || {};
+
+    const record = {
+      month: partnerForm.month,
+      tax: taxService,
+      corporatePhone: kt + skt,
+      officeRent: bsTech,
+      maintenance: gwangmyeongG,
+      equipmentRental: samsungOA + chungho,
+      erpServiceFee: sungjin + ecount,
+      
+      avanteRental: existing.avanteRental !== undefined ? existing.avanteRental : 450000,
+      rayInstallment: existing.rayInstallment !== undefined ? existing.rayInstallment : 280000,
+      smallBizLoanInterest: existing.smallBizLoanInterest !== undefined ? existing.smallBizLoanInterest : 180000,
+      ibkLoanInterest: existing.ibkLoanInterest !== undefined ? existing.ibkLoanInterest : 320000,
+      kiboLoanInterest: existing.kiboLoanInterest !== undefined ? existing.kiboLoanInterest : 220000,
+      creditLoanInterest: existing.creditLoanInterest !== undefined ? existing.creditLoanInterest : 250000,
+
+      // Partner fields
+      samsungOA,
+      sungjin,
+      gwangmyeongG,
+      taxService,
+      ecount,
+      bsTech,
+      chungho,
+      kt,
+      skt
+    };
+
+    const exists = officeExpenses.some(o => o.month === partnerForm.month);
+
+    if (editingPartner) {
+      setOfficeExpenses(prev => prev.map(o => o.month === editingPartner.month ? record : o));
+      logActivity('지출', `고정지출: 거래처별 고정비용 수정 (${partnerForm.month})`);
+    } else {
+      if (exists) {
+        if (confirm(`${partnerForm.month} 데이터가 이미 존재합니다. 덮어쓰시겠습니까?`)) {
+          setOfficeExpenses(prev => prev.map(o => o.month === partnerForm.month ? record : o));
+          logActivity('지출', `고정지출: 거래처별 고정비용 덮어쓰기 (${partnerForm.month})`);
+        } else {
+          return;
+        }
+      } else {
+        setOfficeExpenses(prev => [...prev, record].sort((a, b) => b.month.localeCompare(a.month)));
+        logActivity('지출', `고정지출: 신규 거래처별 고정비용 등록 (${partnerForm.month})`);
+      }
+    }
+
+    setShowPartnerModal(false);
+    setEditingPartner(null);
+  };
+
+  const handleDeletePartner = (month) => {
+    if (confirm(`정말로 ${month} 거래처별 고정 지출 기록을 삭제하시겠습니까?`)) {
+      setOfficeExpenses(prev => prev.filter(o => o.month !== month));
+      logActivity('지출', `고정지출: 거래처별 고정비용 삭제 (${month})`);
+    }
   };
 
   const handleDeleteOffice = (month) => {
@@ -507,6 +672,12 @@ export default function FixedExpenses({
               onClick={() => setFixedTab('office')}
             >
               🏢 월별 고정 사무실 지출 관리
+            </button>
+            <button 
+              className={`btn ${fixedTab === 'partner' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setFixedTab('partner')}
+            >
+              📄 거래처별 월별 고정 지출
             </button>
           </div>
         </div>
@@ -761,6 +932,136 @@ export default function FixedExpenses({
                                 className="btn btn-danger" 
                                 style={{ padding: '2px 5px', fontSize: '10px' }}
                                 onClick={() => handleDeleteOffice(o.month)}
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* --- TAB 3: 거래처별 월별 고정 지출 --- */}
+        {fixedTab === 'partner' && (
+          <div>
+            <div className="panel-header" style={{ marginBottom: '16px' }}>
+              <h3 className="panel-title" style={{ fontSize: '15px' }}>월별 주요 거래처/협력사 고정비용 기록대장</h3>
+              <div className="btn-group">
+                <button 
+                  className="btn btn-secondary"
+                  onClick={() => document.getElementById('partnerCsvFile').click()}
+                >
+                  📄 국세청 비용 CSV 가져오기
+                </button>
+                <input 
+                  type="file" 
+                  id="partnerCsvFile" 
+                  accept=".csv" 
+                  style={{ display: 'none' }} 
+                  onChange={handleCsvImport}
+                />
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setEditingPartner(null);
+                    setPartnerForm({
+                      month: new Date().toISOString().substring(0, 7),
+                      samsungOA: 0,
+                      sungjin: 0,
+                      gwangmyeongG: 0,
+                      taxService: 0,
+                      ecount: 0,
+                      bsTech: 0,
+                      chungho: 0,
+                      kt: 0,
+                      skt: 0
+                    });
+                    setShowPartnerModal(true);
+                  }}
+                >
+                  + 거래처별 고정비 등록
+                </button>
+              </div>
+            </div>
+
+            <div className="table-responsive">
+              <table className="erp-table" style={{ fontSize: '11px' }}>
+                <thead>
+                  <tr>
+                    <th>년월</th>
+                    <th style={{ textAlign: 'right' }}>삼성오에이프라자</th>
+                    <th style={{ textAlign: 'right' }}>성진정보텍</th>
+                    <th style={{ textAlign: 'right' }}>광명G타워</th>
+                    <th style={{ textAlign: 'right' }}>기업세무회계경영</th>
+                    <th style={{ textAlign: 'right' }}>이카운트</th>
+                    <th style={{ textAlign: 'right' }}>비에스테크광명(임대료)</th>
+                    <th style={{ textAlign: 'right' }}>청호나이스</th>
+                    <th style={{ textAlign: 'right' }}>케이티</th>
+                    <th style={{ textAlign: 'right' }}>에스케이텔레콤</th>
+                    <th style={{ textAlign: 'right', fontWeight: 'bold' }}>월 합계</th>
+                    <th style={{ textAlign: 'center' }}>작업</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {officeExpenses.length === 0 ? (
+                    <tr>
+                      <td colSpan="12" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                        등록된 거래처별 고정 지출 내역이 없습니다.
+                      </td>
+                    </tr>
+                  ) : (
+                    officeExpenses.map(o => {
+                      const rowSum = 
+                        (o.samsungOA || 0) + (o.sungjin || 0) + (o.gwangmyeongG || 0) + 
+                        (o.taxService || 0) + (o.ecount || 0) + (o.bsTech || 0) + 
+                        (o.chungho || 0) + (o.kt || 0) + (o.skt || 0);
+                      return (
+                        <tr key={o.month}>
+                          <td style={{ fontWeight: '700' }}>{o.month}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.samsungOA || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.sungjin || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.gwangmyeongG || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.taxService || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.ecount || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.bsTech || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.chungho || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.kt || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.skt || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-blue)' }}>{rowSum.toLocaleString()}</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <div className="btn-group" style={{ justifyContent: 'center', gap: '4px' }}>
+                              <button 
+                                className="btn btn-secondary" 
+                                style={{ padding: '2px 5px', fontSize: '10px' }}
+                                onClick={() => {
+                                  setEditingPartner(o);
+                                  setPartnerForm({
+                                    month: o.month,
+                                    samsungOA: o.samsungOA || 0,
+                                    sungjin: o.sungjin || 0,
+                                    gwangmyeongG: o.gwangmyeongG || 0,
+                                    taxService: o.taxService || 0,
+                                    ecount: o.ecount || 0,
+                                    bsTech: o.bsTech || 0,
+                                    chungho: o.chungho || 0,
+                                    kt: o.kt || 0,
+                                    skt: o.skt || 0
+                                  });
+                                  setShowPartnerModal(true);
+                                }}
+                              >
+                                수정
+                              </button>
+                              <button 
+                                className="btn btn-danger" 
+                                style={{ padding: '2px 5px', fontSize: '10px' }}
+                                onClick={() => handleDeletePartner(o.month)}
                               >
                                 삭제
                               </button>
@@ -1151,6 +1452,154 @@ export default function FixedExpenses({
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowCardModal(false)}>취소</button>
                 <button type="submit" className="btn btn-primary">등록 완료</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL: 거래처별 고정 지출 등록 / 수정 모달 --- */}
+      {showPartnerModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '650px' }}>
+            <div className="modal-header">
+              <h2 className="panel-title">{editingPartner ? '거래처별 고정 지출 수정' : '거래처별 고정 지출 등록'}</h2>
+              <button className="modal-close" onClick={() => setShowPartnerModal(false)}>&times;</button>
+            </div>
+            <form onSubmit={handlePartnerSubmit}>
+              <div className="modal-body">
+                
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div className="form-group">
+                    <label className="form-label">지출 년월 *</label>
+                    <input 
+                      type="month" 
+                      className="form-control" 
+                      required 
+                      disabled={!!editingPartner}
+                      value={partnerForm.month}
+                      onChange={(e) => setPartnerForm(prev => ({ ...prev, month: e.target.value }))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">비에스테크광명(임대료)</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={partnerForm.bsTech}
+                      onChange={(e) => setPartnerForm(prev => ({ ...prev, bsTech: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div className="form-group">
+                    <label className="form-label">삼성오에이프라자</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={partnerForm.samsungOA}
+                      onChange={(e) => setPartnerForm(prev => ({ ...prev, samsungOA: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">성진정보텍</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={partnerForm.sungjin}
+                      onChange={(e) => setPartnerForm(prev => ({ ...prev, sungjin: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div className="form-group">
+                    <label className="form-label">광명G타워</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={partnerForm.gwangmyeongG}
+                      onChange={(e) => setPartnerForm(prev => ({ ...prev, gwangmyeongG: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">기업세무회계경영</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={partnerForm.taxService}
+                      onChange={(e) => setPartnerForm(prev => ({ ...prev, taxService: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div className="form-group">
+                    <label className="form-label">이카운트</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={partnerForm.ecount}
+                      onChange={(e) => setPartnerForm(prev => ({ ...prev, ecount: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">청호나이스</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={partnerForm.chungho}
+                      onChange={(e) => setPartnerForm(prev => ({ ...prev, chungho: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div className="form-group">
+                    <label className="form-label">케이티</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={partnerForm.kt}
+                      onChange={(e) => setPartnerForm(prev => ({ ...prev, kt: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">에스케이텔레콤</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={partnerForm.skt}
+                      onChange={(e) => setPartnerForm(prev => ({ ...prev, skt: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '16px', background: 'rgba(0,0,0,0.02)', padding: '12px', borderRadius: '6px', fontSize: '13px', border: '1px solid var(--border-color)' }}>
+                  <span style={{ fontWeight: 'bold' }}>거래처별 합계: </span>
+                  <span style={{ fontWeight: 'bold', color: 'var(--primary-blue)' }}>
+                    {(
+                      (partnerForm.samsungOA || 0) + (partnerForm.sungjin || 0) + (partnerForm.gwangmyeongG || 0) + 
+                      (partnerForm.taxService || 0) + (partnerForm.ecount || 0) + (partnerForm.bsTech || 0) + 
+                      (partnerForm.chungho || 0) + (partnerForm.kt || 0) + (partnerForm.skt || 0)
+                    ).toLocaleString()}
+                  </span>
+                </div>
+
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowPartnerModal(false)}>취소</button>
+                <button type="submit" className="btn btn-primary">{editingPartner ? '수정 저장' : '등록 저장'}</button>
               </div>
             </form>
           </div>

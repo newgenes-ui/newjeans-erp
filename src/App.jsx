@@ -4,7 +4,7 @@ import Accounting from './components/Accounting';
 import FixedExpenses from './components/FixedExpenses';
 
 // --- DATABASE VERSION FOR SEED RESET ---
-const DB_VERSION = '16';
+const DB_VERSION = '17';
 
 import initialPartners from './data/partners.json';
 import initialItems from './data/items.json';
@@ -163,7 +163,7 @@ export default function App() {
     const local = localStorage.getItem('nj_office_expenses');
     if (local) {
       const parsed = JSON.parse(local);
-      const needsPatch = parsed.some(o => !('officeRent' in o));
+      const needsPatch = parsed.some(o => !('samsungOA' in o));
       if (!needsPatch) {
         return parsed;
       }
@@ -182,7 +182,17 @@ export default function App() {
         smallBizLoanInterest: 175000,
         ibkLoanInterest: 310000,
         kiboLoanInterest: 215000,
-        creditLoanInterest: 245000
+        creditLoanInterest: 245000,
+        // Partner breakdown
+        samsungOA: 110000,
+        sungjin: 15730,
+        gwangmyeongG: 281210,
+        taxService: 1650000,
+        ecount: 44000,
+        bsTech: 1100000,
+        chungho: 45900,
+        kt: 43936,
+        skt: 0
       },
       {
         month: '2026-05',
@@ -197,7 +207,17 @@ export default function App() {
         smallBizLoanInterest: 180000,
         ibkLoanInterest: 320000,
         kiboLoanInterest: 220000,
-        creditLoanInterest: 250000
+        creditLoanInterest: 250000,
+        // Partner breakdown
+        samsungOA: 110000,
+        sungjin: 15730,
+        gwangmyeongG: 281210,
+        taxService: 0,
+        ecount: 44000,
+        bsTech: 1100000,
+        chungho: 45900,
+        kt: 43936,
+        skt: 0
       },
       {
         month: '2026-04',
@@ -212,7 +232,17 @@ export default function App() {
         smallBizLoanInterest: 182000,
         ibkLoanInterest: 325000,
         kiboLoanInterest: 224000,
-        creditLoanInterest: 255000
+        creditLoanInterest: 255000,
+        // Partner breakdown
+        samsungOA: 110000,
+        sungjin: 15730,
+        gwangmyeongG: 333020,
+        taxService: 165000,
+        ecount: 44000,
+        bsTech: 1100000,
+        chungho: 45900,
+        kt: 42768,
+        skt: 22000
       },
       {
         month: '2026-03',
@@ -227,7 +257,17 @@ export default function App() {
         smallBizLoanInterest: 185000,
         ibkLoanInterest: 330000,
         kiboLoanInterest: 228000,
-        creditLoanInterest: 260000
+        creditLoanInterest: 260000,
+        // Partner breakdown
+        samsungOA: 110000,
+        sungjin: 15730,
+        gwangmyeongG: 377860,
+        taxService: 2332000,
+        ecount: 44000,
+        bsTech: 1100000,
+        chungho: 45900,
+        kt: 43599,
+        skt: 22000
       },
       {
         month: '2026-02',
@@ -242,7 +282,17 @@ export default function App() {
         smallBizLoanInterest: 188000,
         ibkLoanInterest: 335000,
         kiboLoanInterest: 232000,
-        creditLoanInterest: 265000
+        creditLoanInterest: 265000,
+        // Partner breakdown
+        samsungOA: 110000,
+        sungjin: 15730,
+        gwangmyeongG: 430680,
+        taxService: 132000,
+        ecount: 44000,
+        bsTech: 1100000,
+        chungho: 45900,
+        kt: 43953,
+        skt: 22000
       },
       {
         month: '2026-01',
@@ -257,7 +307,17 @@ export default function App() {
         smallBizLoanInterest: 191000,
         ibkLoanInterest: 340000,
         kiboLoanInterest: 236000,
-        creditLoanInterest: 270000
+        creditLoanInterest: 270000,
+        // Partner breakdown
+        samsungOA: 110000,
+        sungjin: 15730,
+        gwangmyeongG: 393990,
+        taxService: 132000,
+        ecount: 44000,
+        bsTech: 1100000,
+        chungho: 45900,
+        kt: 44785,
+        skt: 22000
       }
     ];
   });
