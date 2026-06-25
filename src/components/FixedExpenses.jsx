@@ -736,7 +736,7 @@ export default function FixedExpenses({
               </div>
             </div>
 
-            <div className="table-responsive">
+             <div className="table-responsive">
               <table className="erp-table">
                 <thead>
                   <tr>
@@ -745,7 +745,6 @@ export default function FixedExpenses({
                     <th>직급/부서</th>
                     <th style={{ textAlign: 'right' }}>급여 (기본급)</th>
                     <th style={{ textAlign: 'right' }}>4대보험 전체금액</th>
-                    <th style={{ textAlign: 'right' }}>실수령액</th>
                     <th style={{ textAlign: 'right' }}>법인카드 사용금액</th>
                     <th style={{ textAlign: 'center' }}>작업</th>
                   </tr>
@@ -753,7 +752,7 @@ export default function FixedExpenses({
                 <tbody>
                   {employees.length === 0 ? (
                     <tr>
-                      <td colSpan="8" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
                         등록된 직원 내역이 없습니다.
                       </td>
                     </tr>
@@ -767,7 +766,6 @@ export default function FixedExpenses({
                         <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>
                           {(emp.insurancesTotal || (emp.pension + emp.health + emp.employment) || 0).toLocaleString()}
                         </td>
-                        <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-blue)' }}>{emp.netPay.toLocaleString()}</td>
                         <td style={{ textAlign: 'right', fontWeight: '500', color: '#be123c' }}>{(emp.cardUsage || 0).toLocaleString()}</td>
                         <td style={{ textAlign: 'center' }}>
                           <div className="btn-group" style={{ justifyContent: 'center', gap: '6px' }}>
@@ -807,7 +805,6 @@ export default function FixedExpenses({
                     <td colSpan="3" style={{ textAlign: 'center' }}>합계</td>
                     <td style={{ textAlign: 'right' }}>{totalEmployeesSalary.toLocaleString()}</td>
                     <td style={{ textAlign: 'right' }}>{totalEmployeesInsurances.toLocaleString()}</td>
-                    <td style={{ textAlign: 'right', color: 'var(--primary-blue)' }}>{totalEmployeesNetPay.toLocaleString()}</td>
                     <td style={{ textAlign: 'right', color: '#be123c' }}>{totalEmployeesCard.toLocaleString()}</td>
                     <td></td>
                   </tr>
@@ -1152,14 +1149,7 @@ export default function FixedExpenses({
                   />
                 </div>
 
-                <div style={{ marginTop: '16px', background: 'var(--border-color)', padding: '12px', borderRadius: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '4px', color: 'var(--text-primary)' }}>실수령액 요약</div>
-                  <div>- 기본 급여액: {employeeForm.baseSalary.toLocaleString()}</div>
-                  <div>- 4대보험 공제액: {employeeForm.insurancesTotal.toLocaleString()}</div>
-                  <div style={{ marginTop: '6px', borderTop: '1px solid var(--text-muted)', paddingTop: '6px', fontWeight: 'bold', color: 'var(--primary-blue)' }}>
-                    - 예상 실수령액: {(employeeForm.baseSalary - employeeForm.insurancesTotal).toLocaleString()}
-                  </div>
-                </div>
+
 
               </div>
               <div className="modal-footer">
