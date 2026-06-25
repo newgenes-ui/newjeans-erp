@@ -4,7 +4,7 @@ import Accounting from './components/Accounting';
 import FixedExpenses from './components/FixedExpenses';
 
 // --- DATABASE VERSION FOR SEED RESET ---
-const DB_VERSION = '14';
+const DB_VERSION = '15';
 
 import initialPartners from './data/partners.json';
 import initialItems from './data/items.json';
@@ -165,8 +165,12 @@ export default function App() {
     return [
       {
         month: '2026-05',
-        tax: 1500000,
-        corporatePhone: 420000,
+        tax: 0,
+        corporatePhone: 43936,
+        officeRent: 1100000,
+        maintenance: 281210,
+        equipmentRental: 155900,
+        erpServiceFee: 59730,
         avanteRental: 450000,
         rayInstallment: 280000,
         smallBizLoanInterest: 180000,
@@ -177,7 +181,11 @@ export default function App() {
       {
         month: '2026-06',
         tax: 1650000,
-        corporatePhone: 480000,
+        corporatePhone: 43936,
+        officeRent: 1100000,
+        maintenance: 281210,
+        equipmentRental: 155900,
+        erpServiceFee: 59730,
         avanteRental: 450000,
         rayInstallment: 280000,
         smallBizLoanInterest: 175000,

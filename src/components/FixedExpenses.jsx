@@ -34,6 +34,10 @@ export default function FixedExpenses({
     month: new Date().toISOString().substring(0, 7),
     tax: 0,
     corporatePhone: 0,
+    officeRent: 0,
+    maintenance: 0,
+    equipmentRental: 0,
+    erpServiceFee: 0,
     avanteRental: 0,
     rayInstallment: 0,
     smallBizLoanInterest: 0,
@@ -42,7 +46,7 @@ export default function FixedExpenses({
     creditLoanInterest: 0
   });
 
-  // Card Purchase Manual Modal (Shared with main accounting logic)
+  // Card Purchase Manual Modal
   const [showCardModal, setShowCardModal] = useState(false);
   const [cardForm, setCardForm] = useState({
     date: new Date().toISOString().substring(0, 10),
@@ -52,13 +56,191 @@ export default function FixedExpenses({
     cardUser: ''
   });
 
+  // --- CSV PARSING & IMPORT LOGIC ---
+  const parseCSV = (text) => {
+    const lines = [];
+    let row = [""];
+    let inQuotes = false;
+    
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const nextChar = text[i+1];
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          row[row.length - 1] += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        row.push('');
+      } else if ((char === '\r' || char === '\n') && !inQuotes) {
+        if (char === '\r' && nextChar === '\n') {
+          i++;
+        }
+        lines.push(row);
+        row = [''];
+      } else {
+        row[row.length - 1] += char;
+      }
+    }
+    if (row.length > 1 || row[0] !== '') {
+      lines.push(row);
+    }
+    return lines;
+  };
+
+  const handleCsvImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      
+      if (!text.includes('공급자사업자등록번호') || !text.includes('상호')) {
+        alert('올바른 국세청 세금계산서 CSV 파일이 아닙니다.');
+        return;
+      }
+
+      try {
+        const rows = parseCSV(text);
+        if (rows.length < 6) {
+          alert('가져올 데이터가 부족합니다.');
+          return;
+        }
+
+        // Find header row containing the keywords
+        let headerRowIdx = -1;
+        for (let i = 0; i < rows.length; i++) {
+          if (rows[i].includes('월별') && rows[i].includes('상호')) {
+            headerRowIdx = i;
+            break;
+          }
+        }
+
+        if (headerRowIdx === -1) {
+          alert('CSV 헤더(월별, 상호, 합계금액 등)를 찾을 수 없습니다.');
+          return;
+        }
+
+        const headers = rows[headerRowIdx];
+        const monthIdx = headers.indexOf('월별');
+        const supplierIdx = headers.indexOf('상호');
+        const totalAmtIdx = headers.indexOf('합계금액');
+        
+        if (monthIdx === -1 || supplierIdx === -1 || totalAmtIdx === -1) {
+          alert('필수 열(월별, 상호, 합계금액)을 찾을 수 없습니다.');
+          return;
+        }
+
+        // Aggregate by month
+        const monthlyData = {};
+
+        for (let i = headerRowIdx + 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (row.length <= Math.max(monthIdx, supplierIdx, totalAmtIdx)) continue;
+          
+          const monthRaw = row[monthIdx].trim();
+          if (!monthRaw) continue;
+
+          const monthNum = parseInt(monthRaw, 10);
+          if (isNaN(monthNum)) continue;
+          const monthStr = `2026-${monthNum.toString().padStart(2, '0')}`;
+
+          const supplierName = row[supplierIdx].trim();
+          const totalAmtVal = row[totalAmtIdx].trim().replace(/,/g, '');
+          const totalAmt = parseInt(totalAmtVal, 10) || 0;
+
+          if (!monthlyData[monthStr]) {
+            monthlyData[monthStr] = {
+              tax: 0,
+              corporatePhone: 0,
+              officeRent: 0,
+              maintenance: 0,
+              equipmentRental: 0,
+              erpServiceFee: 0
+            };
+          }
+
+          const target = monthlyData[monthStr];
+          
+          // Mapping rules by supplier keyword
+          if (supplierName.includes('비에스테크광명')) {
+            target.officeRent += totalAmt;
+          } else if (supplierName.includes('광명g타워') || supplierName.includes('광명G타워')) {
+            target.maintenance += totalAmt;
+          } else if (supplierName.includes('삼성오에이') || supplierName.includes('청호나이스')) {
+            target.equipmentRental += totalAmt;
+          } else if (supplierName.includes('이카운트') || supplierName.includes('성진정보텍')) {
+            target.erpServiceFee += totalAmt;
+          } else if (supplierName.includes('케이티') || supplierName.includes('에스케이텔레콤')) {
+            target.corporatePhone += totalAmt;
+          } else {
+            // Tax advisor or others go to tax
+            target.tax += totalAmt;
+          }
+        }
+
+        // Apply changes to state
+        setOfficeExpenses(prev => {
+          let updated = [...prev];
+          
+          Object.keys(monthlyData).forEach(month => {
+            const parsedExpenses = monthlyData[month];
+            const existingIdx = updated.findIndex(o => o.month === month);
+
+            if (existingIdx !== -1) {
+              // Preserve loan interests and car expenses, override others
+              const existing = updated[existingIdx];
+              updated[existingIdx] = {
+                ...existing,
+                tax: parsedExpenses.tax,
+                corporatePhone: parsedExpenses.corporatePhone,
+                officeRent: parsedExpenses.officeRent,
+                maintenance: parsedExpenses.maintenance,
+                equipmentRental: parsedExpenses.equipmentRental,
+                erpServiceFee: parsedExpenses.erpServiceFee
+              };
+            } else {
+              // Create new month log
+              updated.push({
+                month,
+                tax: parsedExpenses.tax,
+                corporatePhone: parsedExpenses.corporatePhone,
+                officeRent: parsedExpenses.officeRent,
+                maintenance: parsedExpenses.maintenance,
+                equipmentRental: parsedExpenses.equipmentRental,
+                erpServiceFee: parsedExpenses.erpServiceFee,
+                avanteRental: 0,
+                rayInstallment: 0,
+                smallBizLoanInterest: 0,
+                ibkLoanInterest: 0,
+                kiboLoanInterest: 0,
+                creditLoanInterest: 0
+              });
+            }
+          });
+
+          return updated.sort((a, b) => b.month.localeCompare(a.month));
+        });
+
+        logActivity('지출', `국세청 사무실 비용 CSV 가져오기 완료 (${Object.keys(monthlyData).join(', ')} 적용)`);
+        alert('국세청 사무실 비용 CSV 파일이 성공적으로 파싱되어 적용되었습니다.');
+      } catch (err) {
+        console.error(err);
+        alert('CSV 파일 파싱 중 에러가 발생했습니다: ' + err.message);
+      }
+    };
+    reader.readAsText(file, 'EUC-KR'); // NTS CSV uses EUC-KR encoding in Korea
+  };
+
   // --- EMPLOYEE CRUD HANDLERS ---
   const handleEmployeeSalaryChange = (val) => {
     const base = Number(val);
     setEmployeeForm(prev => {
       const updated = { ...prev, baseSalary: base };
       if (prev.isAutoInsurance) {
-        // Auto calculate 4대보험 worker contributions: Pension 4.5% + Health 3.54% + Employment 0.9% = 8.94%
         updated.insurancesTotal = Math.round(base * 0.0894);
       }
       return updated;
@@ -87,7 +269,6 @@ export default function FixedExpenses({
     const card = Number(employeeForm.cardUsage);
     const netPay = base - ins;
 
-    // Split components for backward compatibility/reporting
     const pension = Math.round(base * 0.045);
     const health = Math.round(base * 0.0354);
     const employment = Math.round(base * 0.009);
@@ -149,6 +330,10 @@ export default function FixedExpenses({
       month: officeForm.month,
       tax: Number(officeForm.tax),
       corporatePhone: Number(officeForm.corporatePhone),
+      officeRent: Number(officeForm.officeRent),
+      maintenance: Number(officeForm.maintenance),
+      equipmentRental: Number(officeForm.equipmentRental),
+      erpServiceFee: Number(officeForm.erpServiceFee),
       avanteRental: Number(officeForm.avanteRental),
       rayInstallment: Number(officeForm.rayInstallment),
       smallBizLoanInterest: Number(officeForm.smallBizLoanInterest),
@@ -187,7 +372,7 @@ export default function FixedExpenses({
     }
   };
 
-  // --- CARD PURCHASE SUBMIT (Appended to central transactions) ---
+  // --- CARD PURCHASE SUBMIT ---
   const handleCardSubmit = (e) => {
     e.preventDefault();
     if (!cardForm.partner || cardForm.purchaseAmt <= 0) {
@@ -207,10 +392,8 @@ export default function FixedExpenses({
       slipId: ''
     };
 
-    // Update central state
     setCardPurchaseTransactions(prev => [newTx, ...prev]);
 
-    // Update employee card usage if the cardUser matches an employee's name
     if (cardForm.cardUser) {
       setEmployees(prev => prev.map(emp => {
         if (emp.name === cardForm.cardUser) {
@@ -224,34 +407,36 @@ export default function FixedExpenses({
     setShowCardModal(false);
   };
 
-  // --- CALCULATION HELPERS FOR KPI ---
-  // Employee stats
+  // --- CALCULATION HELPERS ---
   const totalEmployeesSalary = employees.reduce((acc, curr) => acc + curr.baseSalary, 0);
   const totalEmployeesInsurances = employees.reduce((acc, curr) => acc + (curr.insurancesTotal || (curr.pension + curr.health + curr.employment) || 0), 0);
   const totalEmployeesCard = employees.reduce((acc, curr) => acc + (curr.cardUsage || 0), 0);
   const totalEmployeesNetPay = employees.reduce((acc, curr) => acc + curr.netPay, 0);
 
-  // Latest office stats (or average/sum of current view)
   const latestOfficeRecord = officeExpenses[0] || {
-    tax: 0, corporatePhone: 0, avanteRental: 0, rayInstallment: 0,
-    smallBizLoanInterest: 0, ibkLoanInterest: 0, kiboLoanInterest: 0, creditLoanInterest: 0
+    tax: 0, corporatePhone: 0, officeRent: 0, maintenance: 0, equipmentRental: 0, erpServiceFee: 0,
+    avanteRental: 0, rayInstallment: 0, smallBizLoanInterest: 0, ibkLoanInterest: 0, kiboLoanInterest: 0, creditLoanInterest: 0
   };
 
   const officeMonthlySum = 
-    latestOfficeRecord.tax + 
-    latestOfficeRecord.corporatePhone + 
-    latestOfficeRecord.avanteRental + 
-    latestOfficeRecord.rayInstallment + 
-    latestOfficeRecord.smallBizLoanInterest + 
-    latestOfficeRecord.ibkLoanInterest + 
-    latestOfficeRecord.kiboLoanInterest + 
-    latestOfficeRecord.creditLoanInterest;
+    (latestOfficeRecord.officeRent || 0) +
+    (latestOfficeRecord.maintenance || 0) +
+    (latestOfficeRecord.corporatePhone || 0) +
+    (latestOfficeRecord.equipmentRental || 0) +
+    (latestOfficeRecord.erpServiceFee || 0) +
+    (latestOfficeRecord.tax || 0) +
+    (latestOfficeRecord.avanteRental || 0) + 
+    (latestOfficeRecord.rayInstallment || 0) + 
+    (latestOfficeRecord.smallBizLoanInterest || 0) + 
+    (latestOfficeRecord.ibkLoanInterest || 0) + 
+    (latestOfficeRecord.kiboLoanInterest || 0) + 
+    (latestOfficeRecord.creditLoanInterest || 0);
 
   const officeLoansSum = 
-    latestOfficeRecord.smallBizLoanInterest + 
-    latestOfficeRecord.ibkLoanInterest + 
-    latestOfficeRecord.kiboLoanInterest + 
-    latestOfficeRecord.creditLoanInterest;
+    (latestOfficeRecord.smallBizLoanInterest || 0) + 
+    (latestOfficeRecord.ibkLoanInterest || 0) + 
+    (latestOfficeRecord.kiboLoanInterest || 0) + 
+    (latestOfficeRecord.creditLoanInterest || 0);
 
   return (
     <div className="content-area">
@@ -259,7 +444,6 @@ export default function FixedExpenses({
       {/* KPI summaries */}
       <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', marginBottom: '24px' }}>
         
-        {/* Total monthly fixed cost summary */}
         <div className="kpi-card" style={{ borderLeft: '4px solid var(--primary-blue, #1a56db)' }}>
           <div className="kpi-header">
             <span className="kpi-title">이번달 총 고정 지출 (인건비+사무실)</span>
@@ -269,7 +453,6 @@ export default function FixedExpenses({
           <div className="kpi-subtext">직원 급여 총합 + 직전 등록 월 사무실 고정비</div>
         </div>
 
-        {/* Employee Costs Summary */}
         <div className="kpi-card">
           <div className="kpi-header">
             <span className="kpi-title">직원 총 인건비 지출</span>
@@ -279,7 +462,6 @@ export default function FixedExpenses({
           <div className="kpi-subtext">직원 {employees.length}명 기본급 총합</div>
         </div>
 
-        {/* Office Cost Summary */}
         <div className="kpi-card">
           <div className="kpi-header">
             <span className="kpi-title">사무실 월 고정 지출 ({latestOfficeRecord.month || '내역 없음'})</span>
@@ -289,7 +471,6 @@ export default function FixedExpenses({
           <div className="kpi-subtext">세금, 통신비, 렌탈, 대출이자 등 총계</div>
         </div>
 
-        {/* Interest Costs Summary */}
         <div className="kpi-card" style={{ borderLeft: '4px solid #f59e0b' }}>
           <div className="kpi-header">
             <span className="kpi-title">월 총 금융 대출 이자비용</span>
@@ -447,40 +628,63 @@ export default function FixedExpenses({
           <div>
             <div className="panel-header" style={{ marginBottom: '16px' }}>
               <h3 className="panel-title" style={{ fontSize: '15px' }}>사무실 월별 고정비용 및 대출이자 기록대장</h3>
-              <button 
-                className="btn btn-primary"
-                onClick={() => {
-                  setEditingOffice(null);
-                  setOfficeForm({
-                    month: new Date().toISOString().substring(0, 7),
-                    tax: 0,
-                    corporatePhone: 0,
-                    avanteRental: 0,
-                    rayInstallment: 0,
-                    smallBizLoanInterest: 0,
-                    ibkLoanInterest: 0,
-                    kiboLoanInterest: 0,
-                    creditLoanInterest: 0
-                  });
-                  setShowOfficeModal(true);
-                }}
-              >
-                + 월별 고정비 등록
-              </button>
+              <div className="btn-group">
+                <button 
+                  className="btn btn-secondary"
+                  onClick={() => document.getElementById('officeCsvFile').click()}
+                >
+                  📄 국세청 비용 CSV 가져오기
+                </button>
+                <input 
+                  type="file" 
+                  id="officeCsvFile" 
+                  accept=".csv" 
+                  style={{ display: 'none' }} 
+                  onChange={handleCsvImport}
+                />
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setEditingOffice(null);
+                    setOfficeForm({
+                      month: new Date().toISOString().substring(0, 7),
+                      tax: 0,
+                      corporatePhone: 0,
+                      officeRent: 0,
+                      maintenance: 0,
+                      equipmentRental: 0,
+                      erpServiceFee: 0,
+                      avanteRental: 0,
+                      rayInstallment: 0,
+                      smallBizLoanInterest: 0,
+                      ibkLoanInterest: 0,
+                      kiboLoanInterest: 0,
+                      creditLoanInterest: 0
+                    });
+                    setShowOfficeModal(true);
+                  }}
+                >
+                  + 월별 고정비 등록
+                </button>
+              </div>
             </div>
 
             <div className="table-responsive">
-              <table className="erp-table" style={{ fontSize: '12px' }}>
+              <table className="erp-table" style={{ fontSize: '11px' }}>
                 <thead>
                   <tr>
                     <th>년월</th>
-                    <th style={{ textAlign: 'right' }}>세금</th>
+                    <th style={{ textAlign: 'right' }}>임대료</th>
+                    <th style={{ textAlign: 'right' }}>관리비</th>
                     <th style={{ textAlign: 'right' }}>법인핸드폰사용액</th>
+                    <th style={{ textAlign: 'right' }}>장비렌탈료</th>
+                    <th style={{ textAlign: 'right' }}>ERP사용료</th>
+                    <th style={{ textAlign: 'right' }}>세금</th>
                     <th style={{ textAlign: 'right' }}>아반테 렌탈</th>
                     <th style={{ textAlign: 'right' }}>레이 할부</th>
-                    <th style={{ textAlign: 'right' }}>소상공인 대출이자</th>
-                    <th style={{ textAlign: 'right' }}>기업은행 대출이자</th>
-                    <th style={{ textAlign: 'right' }}>기술보증기금 이자</th>
+                    <th style={{ textAlign: 'right' }}>소상공인 이자</th>
+                    <th style={{ textAlign: 'right' }}>기업은행 이자</th>
+                    <th style={{ textAlign: 'right' }}>기술보증 이자</th>
                     <th style={{ textAlign: 'right' }}>신용대출 이자</th>
                     <th style={{ textAlign: 'right', fontWeight: 'bold' }}>월 합계</th>
                     <th style={{ textAlign: 'center' }}>작업</th>
@@ -489,34 +693,55 @@ export default function FixedExpenses({
                 <tbody>
                   {officeExpenses.length === 0 ? (
                     <tr>
-                      <td colSpan="11" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                      <td colSpan="15" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
                         등록된 월별 고정 지출 내역이 없습니다.
                       </td>
                     </tr>
                   ) : (
                     officeExpenses.map(o => {
-                      const rowSum = o.tax + o.corporatePhone + o.avanteRental + o.rayInstallment + 
-                        o.smallBizLoanInterest + o.ibkLoanInterest + o.kiboLoanInterest + o.creditLoanInterest;
+                      const rowSum = (o.officeRent || 0) + (o.maintenance || 0) + (o.corporatePhone || 0) + 
+                        (o.equipmentRental || 0) + (o.erpServiceFee || 0) + (o.tax || 0) + 
+                        (o.avanteRental || 0) + (o.rayInstallment || 0) + 
+                        (o.smallBizLoanInterest || 0) + (o.ibkLoanInterest || 0) + 
+                        (o.kiboLoanInterest || 0) + (o.creditLoanInterest || 0);
                       return (
                         <tr key={o.month}>
                           <td style={{ fontWeight: '700' }}>{o.month}</td>
-                          <td style={{ textAlign: 'right' }}>{o.tax.toLocaleString()}</td>
-                          <td style={{ textAlign: 'right' }}>{o.corporatePhone.toLocaleString()}</td>
-                          <td style={{ textAlign: 'right' }}>{o.avanteRental.toLocaleString()}</td>
-                          <td style={{ textAlign: 'right' }}>{o.rayInstallment.toLocaleString()}</td>
-                          <td style={{ textAlign: 'right', color: '#b45309' }}>{o.smallBizLoanInterest.toLocaleString()}</td>
-                          <td style={{ textAlign: 'right', color: '#b45309' }}>{o.ibkLoanInterest.toLocaleString()}</td>
-                          <td style={{ textAlign: 'right', color: '#b45309' }}>{o.kiboLoanInterest.toLocaleString()}</td>
-                          <td style={{ textAlign: 'right', color: '#b45309' }}>{o.creditLoanInterest.toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.officeRent || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.maintenance || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.corporatePhone || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.equipmentRental || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.erpServiceFee || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.tax || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.avanteRental || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.rayInstallment || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right', color: '#b45309' }}>{(o.smallBizLoanInterest || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right', color: '#b45309' }}>{(o.ibkLoanInterest || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right', color: '#b45309' }}>{(o.kiboLoanInterest || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right', color: '#b45309' }}>{(o.creditLoanInterest || 0).toLocaleString()}</td>
                           <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-blue)' }}>{rowSum.toLocaleString()}</td>
                           <td style={{ textAlign: 'center' }}>
                             <div className="btn-group" style={{ justifyContent: 'center', gap: '4px' }}>
                               <button 
                                 className="btn btn-secondary" 
-                                style={{ padding: '2px 6px', fontSize: '11px' }}
+                                style={{ padding: '2px 5px', fontSize: '10px' }}
                                 onClick={() => {
                                   setEditingOffice(o);
-                                  setOfficeForm({ ...o });
+                                  setOfficeForm({
+                                    month: o.month,
+                                    tax: o.tax || 0,
+                                    corporatePhone: o.corporatePhone || 0,
+                                    officeRent: o.officeRent || 0,
+                                    maintenance: o.maintenance || 0,
+                                    equipmentRental: o.equipmentRental || 0,
+                                    erpServiceFee: o.erpServiceFee || 0,
+                                    avanteRental: o.avanteRental || 0,
+                                    rayInstallment: o.rayInstallment || 0,
+                                    smallBizLoanInterest: o.smallBizLoanInterest || 0,
+                                    ibkLoanInterest: o.ibkLoanInterest || 0,
+                                    kiboLoanInterest: o.kiboLoanInterest || 0,
+                                    creditLoanInterest: o.creditLoanInterest || 0
+                                  });
                                   setShowOfficeModal(true);
                                 }}
                               >
@@ -524,7 +749,7 @@ export default function FixedExpenses({
                               </button>
                               <button 
                                 className="btn btn-danger" 
-                                style={{ padding: '2px 6px', fontSize: '11px' }}
+                                style={{ padding: '2px 5px', fontSize: '10px' }}
                                 onClick={() => handleDeleteOffice(o.month)}
                               >
                                 삭제
@@ -579,7 +804,7 @@ export default function FixedExpenses({
                 </div>
 
                 <div className="form-group" style={{ marginBottom: '12px' }}>
-                  <label className="form-label">기본급 (원) *</label>
+                  <label className="form-label">기본급 *</label>
                   <input 
                     type="number" 
                     className="form-control" 
@@ -604,7 +829,7 @@ export default function FixedExpenses({
                     </label>
                   </div>
                   
-                  <label className="form-label">4대보험 전체금액 (원) *</label>
+                  <label className="form-label">4대보험 전체금액 *</label>
                   <input 
                     type="number" 
                     className="form-control" 
@@ -618,7 +843,7 @@ export default function FixedExpenses({
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">법인카드 사용액 (원)</label>
+                  <label className="form-label">법인카드 사용액</label>
                   <input 
                     type="number" 
                     className="form-control" 
@@ -651,7 +876,7 @@ export default function FixedExpenses({
       {/* --- MODAL: 월별 사무실 지출 등록 / 수정 모달 --- */}
       {showOfficeModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '600px' }}>
+          <div className="modal-content" style={{ maxWidth: '650px' }}>
             <div className="modal-header">
               <h2 className="panel-title">{editingOffice ? '월별 고정 지출 수정' : '월별 고정 지출 등록'}</h2>
               <button className="modal-close" onClick={() => setShowOfficeModal(false)}>&times;</button>
@@ -672,20 +897,30 @@ export default function FixedExpenses({
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">세금 (원)</label>
+                    <label className="form-label">사무실 임대료</label>
                     <input 
                       type="number" 
                       className="form-control" 
                       min="0"
-                      value={officeForm.tax}
-                      onChange={(e) => setOfficeForm(prev => ({ ...prev, tax: Number(e.target.value) }))}
+                      value={officeForm.officeRent}
+                      onChange={(e) => setOfficeForm(prev => ({ ...prev, officeRent: Number(e.target.value) }))}
                     />
                   </div>
                 </div>
 
                 <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <div className="form-group">
-                    <label className="form-label">법인핸드폰사용액 (원)</label>
+                    <label className="form-label">사무실 관리비</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={officeForm.maintenance}
+                      onChange={(e) => setOfficeForm(prev => ({ ...prev, maintenance: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">법인핸드폰사용액</label>
                     <input 
                       type="number" 
                       className="form-control" 
@@ -694,8 +929,44 @@ export default function FixedExpenses({
                       onChange={(e) => setOfficeForm(prev => ({ ...prev, corporatePhone: Number(e.target.value) }))}
                     />
                   </div>
+                </div>
+
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <div className="form-group">
-                    <label className="form-label">아반테 렌탈비용 (원)</label>
+                    <label className="form-label">복사기/정수기 장비렌탈료</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={officeForm.equipmentRental}
+                      onChange={(e) => setOfficeForm(prev => ({ ...prev, equipmentRental: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">ERP 및 전산사용료</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={officeForm.erpServiceFee}
+                      onChange={(e) => setOfficeForm(prev => ({ ...prev, erpServiceFee: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div className="form-group">
+                    <label className="form-label">세금 (기장료 등 세무비용)</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={officeForm.tax}
+                      onChange={(e) => setOfficeForm(prev => ({ ...prev, tax: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">아반테 렌탈비용</label>
                     <input 
                       type="number" 
                       className="form-control" 
@@ -708,7 +979,7 @@ export default function FixedExpenses({
 
                 <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <div className="form-group">
-                    <label className="form-label">레이 법인차 할부금액 (원)</label>
+                    <label className="form-label">레이 법인차 할부금액</label>
                     <input 
                       type="number" 
                       className="form-control" 
@@ -718,7 +989,7 @@ export default function FixedExpenses({
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">소상공인 대출이자 (원)</label>
+                    <label className="form-label">소상공인 대출이자</label>
                     <input 
                       type="number" 
                       className="form-control" 
@@ -732,7 +1003,7 @@ export default function FixedExpenses({
 
                 <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <div className="form-group">
-                    <label className="form-label">기업은행 대출이자 (원)</label>
+                    <label className="form-label">기업은행 대출이자</label>
                     <input 
                       type="number" 
                       className="form-control" 
@@ -743,7 +1014,7 @@ export default function FixedExpenses({
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">기술보증기금 이자 (원)</label>
+                    <label className="form-label">기술보증기금 이자</label>
                     <input 
                       type="number" 
                       className="form-control" 
@@ -756,7 +1027,7 @@ export default function FixedExpenses({
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">신용대출 이자 (원)</label>
+                  <label className="form-label">신용대출 이자</label>
                   <input 
                     type="number" 
                     className="form-control" 
@@ -771,8 +1042,11 @@ export default function FixedExpenses({
                   <span style={{ fontWeight: 'bold' }}>입력 항목 합계: </span>
                   <span style={{ fontWeight: 'bold', color: 'var(--primary-blue)' }}>
                     {(
-                      officeForm.tax + officeForm.corporatePhone + officeForm.avanteRental + officeForm.rayInstallment + 
-                      officeForm.smallBizLoanInterest + officeForm.ibkLoanInterest + officeForm.kiboLoanInterest + officeForm.creditLoanInterest
+                      (officeForm.officeRent || 0) + (officeForm.maintenance || 0) + (officeForm.corporatePhone || 0) + 
+                      (officeForm.equipmentRental || 0) + (officeForm.erpServiceFee || 0) + (officeForm.tax || 0) + 
+                      (officeForm.avanteRental || 0) + (officeForm.rayInstallment || 0) + 
+                      (officeForm.smallBizLoanInterest || 0) + (officeForm.ibkLoanInterest || 0) + 
+                      (officeForm.kiboLoanInterest || 0) + (officeForm.creditLoanInterest || 0)
                     ).toLocaleString()}
                   </span>
                 </div>
