@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Inventory from './components/Inventory';
 import Accounting from './components/Accounting';
+import FixedExpenses from './components/FixedExpenses';
 
 // --- DATABASE VERSION FOR SEED RESET ---
-const DB_VERSION = '13';
+const DB_VERSION = '14';
 
 import initialPartners from './data/partners.json';
 import initialItems from './data/items.json';
@@ -77,6 +78,7 @@ export default function App() {
       localStorage.removeItem('nj_card_sales');
       localStorage.removeItem('nj_card_purchase');
       localStorage.removeItem('nj_employees');
+      localStorage.removeItem('nj_office_expenses');
       localStorage.setItem('nj_db_version', DB_VERSION);
       // Reload page to apply clean states
       window.location.reload();
@@ -157,6 +159,35 @@ export default function App() {
     ];
   });
 
+  const [officeExpenses, setOfficeExpenses] = useState(() => {
+    const local = localStorage.getItem('nj_office_expenses');
+    if (local) return JSON.parse(local);
+    return [
+      {
+        month: '2026-05',
+        tax: 1500000,
+        corporatePhone: 420000,
+        avanteRental: 450000,
+        rayInstallment: 280000,
+        smallBizLoanInterest: 180000,
+        ibkLoanInterest: 320000,
+        kiboLoanInterest: 220000,
+        creditLoanInterest: 250000
+      },
+      {
+        month: '2026-06',
+        tax: 1650000,
+        corporatePhone: 480000,
+        avanteRental: 450000,
+        rayInstallment: 280000,
+        smallBizLoanInterest: 175000,
+        ibkLoanInterest: 310000,
+        kiboLoanInterest: 215000,
+        creditLoanInterest: 245000
+      }
+    ];
+  });
+
   // Linkage Connection State
   const [isIbkLinked, setIsIbkLinked] = useState(() => {
     const local = localStorage.getItem('nj_ibk_linked');
@@ -226,6 +257,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('nj_employees', JSON.stringify(employees));
   }, [employees]);
+
+  useEffect(() => {
+    localStorage.setItem('nj_office_expenses', JSON.stringify(officeExpenses));
+  }, [officeExpenses]);
 
   // Dark/Light Theme toggler
   useEffect(() => {
@@ -358,6 +393,12 @@ export default function App() {
               📊 경영 대시보드
             </li>
             <li 
+              className={`menu-item ${activeTab === 'fixed_expenses' ? 'active' : ''}`}
+              onClick={() => setActiveTab('fixed_expenses')}
+            >
+              💸 고정 지출
+            </li>
+            <li 
               className={`menu-item ${activeTab === 'inventory' ? 'active' : ''}`}
               onClick={() => setActiveTab('inventory')}
             >
@@ -407,6 +448,7 @@ export default function App() {
           <div className="page-title-container">
             <span className="page-title">
               {activeTab === 'dashboard' && '경영 종합 대시보드 (Management Dashboard)'}
+              {activeTab === 'fixed_expenses' && '고정 지출 및 대출 이자 관리'}
               {activeTab === 'inventory' && '재고 수불 및 전표 처리'}
               {activeTab === 'accounting' && '전자세금계산서 및 금융 연동'}
             </span>
@@ -580,6 +622,23 @@ export default function App() {
               {/* Deleted low stock alert summary section from dashboard view */}
 
             </div>
+          )}
+
+          {/* TAB: FIXED EXPENSES */}
+          {activeTab === 'fixed_expenses' && (
+            <FixedExpenses 
+              employees={employees}
+              setEmployees={setEmployees}
+              officeExpenses={officeExpenses}
+              setOfficeExpenses={setOfficeExpenses}
+              cardPurchaseTransactions={cardPurchaseTransactions}
+              setCardPurchaseTransactions={setCardPurchaseTransactions}
+              items={items}
+              setItems={setItems}
+              purchases={purchases}
+              setPurchases={setPurchases}
+              logActivity={logActivity}
+            />
           )}
 
           {/* TAB 2: INVENTORY */}
