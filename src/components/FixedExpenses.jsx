@@ -404,54 +404,44 @@ export default function FixedExpenses({
       return;
     }
 
-    const rent = Number(officeForm.officeRent);
-    const maint = Number(officeForm.maintenance);
-    const taxVal = Number(officeForm.tax);
-    const equip = Number(officeForm.equipmentRental);
-    const erp = Number(officeForm.erpServiceFee);
-    const phone = Number(officeForm.corporatePhone);
+    const avante = Number(officeForm.avanteRental);
+    const ray = Number(officeForm.rayInstallment);
+    const smallBiz = Number(officeForm.smallBizLoanInterest);
+    const ibk = Number(officeForm.ibkLoanInterest);
+    const kibo = Number(officeForm.kiboLoanInterest);
+    const credit = Number(officeForm.creditLoanInterest);
 
-    const samsungOA = Math.round(equip * (110000 / 155900));
-    const chungho = equip - samsungOA;
-    const sungjin = Math.round(erp * (15730 / 59730));
-    const ecount = erp - sungjin;
-    const kt = Math.round(phone * (44000 / 66000));
-    const skt = phone - kt;
-
-    // Split tax: advisory fee (taxCorp) vs corporate tax adjustment (taxService)
-    let taxCorp = taxVal;
-    let taxService = 0;
-    if (taxVal > 200000) {
-      taxCorp = 132000;
-      taxService = taxVal - 132000;
-    }
+    // Find existing NTS/partner values to preserve them
+    const existing = officeExpenses.find(o => o.month === officeForm.month) || {};
 
     const record = {
       month: officeForm.month,
-      tax: taxVal,
-      corporatePhone: phone,
-      officeRent: rent,
-      maintenance: maint,
-      equipmentRental: equip,
-      erpServiceFee: erp,
-      avanteRental: Number(officeForm.avanteRental),
-      rayInstallment: Number(officeForm.rayInstallment),
-      smallBizLoanInterest: Number(officeForm.smallBizLoanInterest),
-      ibkLoanInterest: Number(officeForm.ibkLoanInterest),
-      kiboLoanInterest: Number(officeForm.kiboLoanInterest),
-      creditLoanInterest: Number(officeForm.creditLoanInterest),
+      avanteRental: avante,
+      rayInstallment: ray,
+      smallBizLoanInterest: smallBiz,
+      ibkLoanInterest: ibk,
+      kiboLoanInterest: kibo,
+      creditLoanInterest: credit,
       
-      // Synchronize partner fields
-      bsTech: rent,
-      gwangmyeongG: maint,
-      taxService,
-      taxCorp,
-      samsungOA,
-      chungho,
-      sungjin,
-      ecount,
-      kt,
-      skt
+      // Preserve NTS category values
+      tax: existing.tax !== undefined ? existing.tax : 0,
+      corporatePhone: existing.corporatePhone !== undefined ? existing.corporatePhone : 0,
+      officeRent: existing.officeRent !== undefined ? existing.officeRent : 0,
+      maintenance: existing.maintenance !== undefined ? existing.maintenance : 0,
+      equipmentRental: existing.equipmentRental !== undefined ? existing.equipmentRental : 0,
+      erpServiceFee: existing.erpServiceFee !== undefined ? existing.erpServiceFee : 0,
+
+      // Preserve partner values
+      bsTech: existing.bsTech !== undefined ? existing.bsTech : 0,
+      gwangmyeongG: existing.gwangmyeongG !== undefined ? existing.gwangmyeongG : 0,
+      taxService: existing.taxService !== undefined ? existing.taxService : 0,
+      taxCorp: existing.taxCorp !== undefined ? existing.taxCorp : 0,
+      samsungOA: existing.samsungOA !== undefined ? existing.samsungOA : 0,
+      chungho: existing.chungho !== undefined ? existing.chungho : 0,
+      sungjin: existing.sungjin !== undefined ? existing.sungjin : 0,
+      ecount: existing.ecount !== undefined ? existing.ecount : 0,
+      kt: existing.kt !== undefined ? existing.kt : 0,
+      skt: existing.skt !== undefined ? existing.skt : 0
     };
 
     const exists = officeExpenses.some(o => o.month === officeForm.month);
@@ -826,33 +816,14 @@ export default function FixedExpenses({
         {fixedTab === 'office' && (
           <div>
             <div className="panel-header" style={{ marginBottom: '16px' }}>
-              <h3 className="panel-title" style={{ fontSize: '15px' }}>사무실 월별 고정비용 및 대출이자 기록대장</h3>
+              <h3 className="panel-title" style={{ fontSize: '15px' }}>사무실 월별 차량/대출 고정비용 기록대장</h3>
               <div className="btn-group">
-                <button 
-                  className="btn btn-secondary"
-                  onClick={() => document.getElementById('officeCsvFile').click()}
-                >
-                  📄 국세청 비용 CSV 가져오기
-                </button>
-                <input 
-                  type="file" 
-                  id="officeCsvFile" 
-                  accept=".csv" 
-                  style={{ display: 'none' }} 
-                  onChange={handleCsvImport}
-                />
                 <button 
                   className="btn btn-primary"
                   onClick={() => {
                     setEditingOffice(null);
                     setOfficeForm({
                       month: new Date().toISOString().substring(0, 7),
-                      tax: 0,
-                      corporatePhone: 0,
-                      officeRent: 0,
-                      maintenance: 0,
-                      equipmentRental: 0,
-                      erpServiceFee: 0,
                       avanteRental: 0,
                       rayInstallment: 0,
                       smallBizLoanInterest: 0,
@@ -863,7 +834,7 @@ export default function FixedExpenses({
                     setShowOfficeModal(true);
                   }}
                 >
-                  + 월별 고정비 등록
+                  + 고정 지출 등록
                 </button>
               </div>
             </div>
@@ -873,12 +844,6 @@ export default function FixedExpenses({
                 <thead>
                   <tr>
                     <th>년월</th>
-                    <th style={{ textAlign: 'right' }}>임대료</th>
-                    <th style={{ textAlign: 'right' }}>관리비</th>
-                    <th style={{ textAlign: 'right' }}>법인핸드폰사용액</th>
-                    <th style={{ textAlign: 'right' }}>장비렌탈료</th>
-                    <th style={{ textAlign: 'right' }}>ERP사용료</th>
-                    <th style={{ textAlign: 'right' }}>세금</th>
                     <th style={{ textAlign: 'right' }}>아반테 렌탈</th>
                     <th style={{ textAlign: 'right' }}>레이 할부</th>
                     <th style={{ textAlign: 'right' }}>소상공인 이자</th>
@@ -892,26 +857,18 @@ export default function FixedExpenses({
                 <tbody>
                   {officeExpenses.length === 0 ? (
                     <tr>
-                      <td colSpan="15" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                      <td colSpan="9" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
                         등록된 월별 고정 지출 내역이 없습니다.
                       </td>
                     </tr>
                   ) : (
                     officeExpenses.map(o => {
-                      const rowSum = (o.officeRent || 0) + (o.maintenance || 0) + (o.corporatePhone || 0) + 
-                        (o.equipmentRental || 0) + (o.erpServiceFee || 0) + (o.tax || 0) + 
-                        (o.avanteRental || 0) + (o.rayInstallment || 0) + 
+                      const rowSum = (o.avanteRental || 0) + (o.rayInstallment || 0) + 
                         (o.smallBizLoanInterest || 0) + (o.ibkLoanInterest || 0) + 
                         (o.kiboLoanInterest || 0) + (o.creditLoanInterest || 0);
                       return (
                         <tr key={o.month}>
                           <td style={{ fontWeight: '700' }}>{o.month}</td>
-                          <td style={{ textAlign: 'right' }}>{(o.officeRent || 0).toLocaleString()}</td>
-                          <td style={{ textAlign: 'right' }}>{(o.maintenance || 0).toLocaleString()}</td>
-                          <td style={{ textAlign: 'right' }}>{(o.corporatePhone || 0).toLocaleString()}</td>
-                          <td style={{ textAlign: 'right' }}>{(o.equipmentRental || 0).toLocaleString()}</td>
-                          <td style={{ textAlign: 'right' }}>{(o.erpServiceFee || 0).toLocaleString()}</td>
-                          <td style={{ textAlign: 'right' }}>{(o.tax || 0).toLocaleString()}</td>
                           <td style={{ textAlign: 'right' }}>{(o.avanteRental || 0).toLocaleString()}</td>
                           <td style={{ textAlign: 'right' }}>{(o.rayInstallment || 0).toLocaleString()}</td>
                           <td style={{ textAlign: 'right', color: '#b45309' }}>{(o.smallBizLoanInterest || 0).toLocaleString()}</td>
@@ -928,12 +885,6 @@ export default function FixedExpenses({
                                   setEditingOffice(o);
                                   setOfficeForm({
                                     month: o.month,
-                                    tax: o.tax || 0,
-                                    corporatePhone: o.corporatePhone || 0,
-                                    officeRent: o.officeRent || 0,
-                                    maintenance: o.maintenance || 0,
-                                    equipmentRental: o.equipmentRental || 0,
-                                    erpServiceFee: o.erpServiceFee || 0,
                                     avanteRental: o.avanteRental || 0,
                                     rayInstallment: o.rayInstallment || 0,
                                     smallBizLoanInterest: o.smallBizLoanInterest || 0,
@@ -994,6 +945,7 @@ export default function FixedExpenses({
                       sungjin: 0,
                       gwangmyeongG: 0,
                       taxService: 0,
+                      taxCorp: 0,
                       ecount: 0,
                       bsTech: 0,
                       chungho: 0,
@@ -1208,9 +1160,9 @@ export default function FixedExpenses({
       {/* --- MODAL: 월별 사무실 지출 등록 / 수정 모달 --- */}
       {showOfficeModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '650px' }}>
+          <div className="modal-content" style={{ maxWidth: '600px' }}>
             <div className="modal-header">
-              <h2 className="panel-title">{editingOffice ? '월별 고정 지출 수정' : '월별 고정 지출 등록'}</h2>
+              <h2 className="panel-title">{editingOffice ? '차량/대출 고정 지출 수정' : '차량/대출 고정 지출 등록'}</h2>
               <button className="modal-close" onClick={() => setShowOfficeModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleOfficeSubmit}>
@@ -1226,75 +1178,6 @@ export default function FixedExpenses({
                       disabled={!!editingOffice}
                       value={officeForm.month}
                       onChange={(e) => setOfficeForm(prev => ({ ...prev, month: e.target.value }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">사무실 임대료</label>
-                    <input 
-                      type="number" 
-                      className="form-control" 
-                      min="0"
-                      value={officeForm.officeRent}
-                      onChange={(e) => setOfficeForm(prev => ({ ...prev, officeRent: Number(e.target.value) }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <div className="form-group">
-                    <label className="form-label">사무실 관리비</label>
-                    <input 
-                      type="number" 
-                      className="form-control" 
-                      min="0"
-                      value={officeForm.maintenance}
-                      onChange={(e) => setOfficeForm(prev => ({ ...prev, maintenance: Number(e.target.value) }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">법인핸드폰사용액</label>
-                    <input 
-                      type="number" 
-                      className="form-control" 
-                      min="0"
-                      value={officeForm.corporatePhone}
-                      onChange={(e) => setOfficeForm(prev => ({ ...prev, corporatePhone: Number(e.target.value) }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <div className="form-group">
-                    <label className="form-label">복사기/정수기 장비렌탈료</label>
-                    <input 
-                      type="number" 
-                      className="form-control" 
-                      min="0"
-                      value={officeForm.equipmentRental}
-                      onChange={(e) => setOfficeForm(prev => ({ ...prev, equipmentRental: Number(e.target.value) }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">ERP 및 전산사용료</label>
-                    <input 
-                      type="number" 
-                      className="form-control" 
-                      min="0"
-                      value={officeForm.erpServiceFee}
-                      onChange={(e) => setOfficeForm(prev => ({ ...prev, erpServiceFee: Number(e.target.value) }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <div className="form-group">
-                    <label className="form-label">세금 (기장료 등 세무비용)</label>
-                    <input 
-                      type="number" 
-                      className="form-control" 
-                      min="0"
-                      value={officeForm.tax}
-                      onChange={(e) => setOfficeForm(prev => ({ ...prev, tax: Number(e.target.value) }))}
                     />
                   </div>
                   <div className="form-group">
@@ -1374,8 +1257,6 @@ export default function FixedExpenses({
                   <span style={{ fontWeight: 'bold' }}>입력 항목 합계: </span>
                   <span style={{ fontWeight: 'bold', color: 'var(--primary-blue)' }}>
                     {(
-                      (officeForm.officeRent || 0) + (officeForm.maintenance || 0) + (officeForm.corporatePhone || 0) + 
-                      (officeForm.equipmentRental || 0) + (officeForm.erpServiceFee || 0) + (officeForm.tax || 0) + 
                       (officeForm.avanteRental || 0) + (officeForm.rayInstallment || 0) + 
                       (officeForm.smallBizLoanInterest || 0) + (officeForm.ibkLoanInterest || 0) + 
                       (officeForm.kiboLoanInterest || 0) + (officeForm.creditLoanInterest || 0)
