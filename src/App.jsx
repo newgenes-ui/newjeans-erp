@@ -257,24 +257,38 @@ export default function App() {
   // Inventory stats
   const lowStockCount = items.filter(i => i.stock <= i.safetyStock).length;
 
-  // --- DASHBOARD MONTHLY & QUARTERLY GRAPH CALCULATION ---
-  // Get sales by months
-  const getMonthlySales = () => {
+  // --- DASHBOARD MONTHLY & QUARTERLY PROFIT CALCULATION ---
+  // Get profit by months
+  const getMonthlyProfit = () => {
     const months = ['01', '02', '03', '04', '05', '06'];
     const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월'];
     return months.map((m, idx) => {
       const monthSales = sales
         .filter(s => s.date.split('-')[1] === m)
         .reduce((acc, curr) => acc + curr.supplyValue, 0);
-      return { label: monthNames[idx], value: monthSales };
+      const monthPurchases = purchases
+        .filter(p => p.date.split('-')[1] === m)
+        .reduce((acc, curr) => acc + curr.supplyValue, 0);
+      return { 
+        label: monthNames[idx], 
+        sales: monthSales,
+        purchases: monthPurchases,
+        value: monthSales - monthPurchases
+      };
     });
   };
 
-  // Get sales by quarters
-  const getQuarterlySales = () => {
+  // Get profit by quarters
+  const getQuarterlyProfit = () => {
     const q1Sales = sales
       .filter(s => {
         const m = s.date.split('-')[1];
+        return m === '01' || m === '02' || m === '03';
+      })
+      .reduce((acc, curr) => acc + curr.supplyValue, 0);
+    const q1Purchases = purchases
+      .filter(p => {
+        const m = p.date.split('-')[1];
         return m === '01' || m === '02' || m === '03';
       })
       .reduce((acc, curr) => acc + curr.supplyValue, 0);
@@ -285,15 +299,21 @@ export default function App() {
         return m === '04' || m === '05' || m === '06';
       })
       .reduce((acc, curr) => acc + curr.supplyValue, 0);
+    const q2Purchases = purchases
+      .filter(p => {
+        const m = p.date.split('-')[1];
+        return m === '04' || m === '05' || m === '06';
+      })
+      .reduce((acc, curr) => acc + curr.supplyValue, 0);
 
     return [
-      { label: '1분기 (Q1)', value: q1Sales },
-      { label: '2분기 (Q2)', value: q2Sales }
+      { label: '1분기 (Q1)', sales: q1Sales, purchases: q1Purchases, value: q1Sales - q1Purchases },
+      { label: '2분기 (Q2)', sales: q2Sales, purchases: q2Purchases, value: q2Sales - q2Purchases }
     ];
   };
 
-  const chartData = dashboardViewMode === 'monthly' ? getMonthlySales() : getQuarterlySales();
-  const maxChartValue = Math.max(...chartData.map(d => d.value), 1000000); // Prevent divide by zero
+  const chartData = dashboardViewMode === 'monthly' ? getMonthlyProfit() : getQuarterlyProfit();
+  const maxChartValue = Math.max(...chartData.map(d => Math.abs(d.value)), 1000000); // Prevent divide by zero
 
   return (
     <div className="app-container">
@@ -395,23 +415,8 @@ export default function App() {
             <div className="content-area">
               
               {/* Top KPI row */}
-              <div className="dashboard-grid">
+              <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
                 
-                {/* cash balance */}
-                <div className="kpi-card">
-                  <div className="kpi-header">
-                    <span className="kpi-title">주거래 통장 잔액 (기업은행)</span>
-                    <span className="kpi-icon">🏦</span>
-                  </div>
-                  <div className="kpi-value">{currentCashBalance.toLocaleString()}원</div>
-                  <div className="kpi-subtext">
-                    기초자금 1.5억 대조 대비 {' '}
-                    <span className="kpi-trend up">
-                      ▲ {((currentCashBalance - 150000000) / 150000000 * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-
                 {/* Sales volume */}
                 <div className="kpi-card">
                   <div className="kpi-header">
@@ -432,27 +437,37 @@ export default function App() {
                   <div className="kpi-subtext">원부자재 및 앨범 위탁 생산 비용 합산</div>
                 </div>
 
-                {/* Safety stock alerts */}
-                <div className="kpi-card">
-                  <div className="kpi-header">
-                    <span className="kpi-title">재고부족 품목 경고</span>
-                    <span className="kpi-icon">⚠️</span>
-                  </div>
-                  <div className="kpi-value" style={{ color: lowStockCount > 0 ? '#be123c' : 'inherit' }}>
-                    {lowStockCount} 건
-                  </div>
-                  <div className="kpi-subtext">안전재고 임계치 이하로 설정된 자재 목록</div>
-                </div>
+                {/* Operating Profit */}
+                {(() => {
+                  const totalProfit = totalSalesAmount - totalPurchaseAmount;
+                  return (
+                    <div className="kpi-card" style={{ borderLeft: '4px solid var(--accent-lavender, #c084fc)' }}>
+                      <div className="kpi-header">
+                        <span className="kpi-title">누적 영업 이익 (매출 - 매입)</span>
+                        <span className="kpi-icon">💰</span>
+                      </div>
+                      <div className="kpi-value" style={{ color: totalProfit >= 0 ? 'var(--primary-blue, #1a56db)' : '#be123c' }}>
+                        {totalProfit.toLocaleString()}원
+                      </div>
+                      <div className="kpi-subtext">
+                        누적 판매 매출액과 매입원가의 차액 기준 {' '}
+                        <span className={`kpi-trend ${totalProfit >= 0 ? 'up' : 'down'}`}>
+                          {totalProfit >= 0 ? '▲' : '▼'} {totalSalesAmount > 0 ? (totalProfit / totalSalesAmount * 100).toFixed(1) : 0}% (이익률)
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
               </div>
 
               {/* Bottom Split layout */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 
-                {/* Monthly/Quarterly Sales Trend Chart (Custom Inline SVG) */}
+                {/* Monthly/Quarterly Profit Trend Chart */}
                 <div className="panel-card" style={{ display: 'flex', flexDirection: 'column' }}>
                   <div className="panel-header" style={{ marginBottom: '8px', paddingBottom: 0 }}>
-                    <h2 className="panel-title">누적 매출 판매 트렌드</h2>
+                    <h2 className="panel-title">영업 이익 (Profit) 트렌드</h2>
                     <div className="btn-group">
                       <button 
                         className={`btn ${dashboardViewMode === 'monthly' ? 'btn-primary' : 'btn-secondary'}`}
@@ -471,18 +486,27 @@ export default function App() {
                     </div>
                   </div>
                   <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                    {dashboardViewMode === 'monthly' ? '2026년 상반기 월별 총 판매 매출 공급가액 합계입니다.' : '2026년 분기별 총 판매 매출 공급가액 합계입니다.'}
+                    {dashboardViewMode === 'monthly' ? '2026년 상반기 월별 영업 이익(매출 - 매입) 현황입니다.' : '2026년 분기별 영업 이익(매출 - 매입) 현황입니다.'}
                   </div>
 
                   <div className="chart-bar-container">
                     {chartData.map((d, idx) => {
-                      const pct = Math.min(100, Math.max(8, (d.value / maxChartValue) * 100));
+                      const isPositive = d.value >= 0;
+                      const pct = Math.min(100, Math.max(8, (Math.abs(d.value) / maxChartValue) * 100));
 
                       return (
                         <div key={idx} className="chart-bar-col">
-                          <div className="chart-bar-fill" style={{ height: `${pct}%` }}>
-                            <div className="chart-bar-value">
-                              {d.value > 0 ? `${(d.value / 10000).toLocaleString()}만` : '0'}
+                          <div 
+                            className="chart-bar-fill" 
+                            style={{ 
+                              height: `${pct}%`,
+                              background: isPositive 
+                                ? 'linear-gradient(to top, var(--primary-blue, #1a56db), var(--accent-lavender, #c084fc))' 
+                                : 'linear-gradient(to top, #e11d48, #fda4af)'
+                            }}
+                          >
+                            <div className="chart-bar-value" style={{ color: isPositive ? 'var(--text-primary)' : '#be123c', fontWeight: 'bold' }}>
+                              {d.value !== 0 ? `${(d.value / 10000).toLocaleString(undefined, { maximumFractionDigits: 1 })}만` : '0'}
                             </div>
                           </div>
                           <div className="chart-bar-label">
@@ -492,82 +516,48 @@ export default function App() {
                       );
                     })}
                   </div>
-                </div>
 
-                {/* Real-time System/ERP Action Log */}
-                <div className="panel-card" style={{ maxHeight: '315px', overflowY: 'auto' }}>
-                  <h2 className="panel-title" style={{ marginBottom: '16px' }}>실시간 시스템 활동 로그 (ERP logs)</h2>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {systemLogs.map(log => (
-                      <div 
-                        key={log.id} 
-                        style={{ 
-                          display: 'flex', 
-                          gap: '12px', 
-                          fontSize: '13px', 
-                          borderBottom: '1px solid var(--border-color)', 
-                          paddingBottom: '8px' 
-                        }}
-                      >
-                        <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>[{log.time}]</span>
-                        <span className={`badge ${
-                          log.type === '재고' ? 'badge-blue' : 
-                          log.type === '회계' ? 'badge-green' : 'badge-gray'
-                        }`} style={{ padding: '0 6px', height: '18px' }}>
-                          {log.type}
-                        </span>
-                        <span style={{ color: 'var(--text-primary)', wordBreak: 'break-all' }}>{log.text}</span>
-                      </div>
-                    ))}
+                  <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                    <table className="erp-table" style={{ fontSize: '12px' }}>
+                      <thead>
+                        <tr>
+                          <th>구분</th>
+                          <th style={{ textAlign: 'right' }}>판매 매출액 (A)</th>
+                          <th style={{ textAlign: 'right' }}>매입 원가 (B)</th>
+                          <th style={{ textAlign: 'right' }}>영업 이익 (A - B)</th>
+                          <th style={{ textAlign: 'right' }}>이익률</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {chartData.map((d, idx) => {
+                          const profit = d.value;
+                          const salesVal = d.sales;
+                          const purchasesVal = d.purchases;
+                          const profitRate = salesVal > 0 ? ((profit / salesVal) * 100).toFixed(1) : '0.0';
+                          return (
+                            <tr key={idx}>
+                              <td style={{ fontWeight: '600' }}>{d.label}</td>
+                              <td style={{ textAlign: 'right' }}>{salesVal.toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right' }}>{purchasesVal.toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right', fontWeight: '700', color: profit >= 0 ? 'var(--primary-blue)' : '#be123c' }}>
+                                {profit.toLocaleString()}원
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <span className={`badge ${profit >= 0 ? 'badge-blue' : 'badge-pink'}`} style={{ fontSize: '11px', padding: '2px 6px' }}>
+                                  {profitRate}%
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
               </div>
 
-              {/* Data Summary Section */}
-              <div className="panel-card">
-                <h2 className="panel-title" style={{ marginBottom: '16px' }}>현재고 현황 요약 (기준일시: 실시간)</h2>
-                <div className="table-responsive">
-                  <table className="erp-table">
-                    <thead>
-                      <tr>
-                        <th>코드</th>
-                        <th>구분</th>
-                        <th>품목명</th>
-                        <th style={{ textAlign: 'right' }}>안전재고</th>
-                        <th style={{ textAlign: 'right' }}>현재고</th>
-                        <th>단위</th>
-                        <th>비고</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map(item => (
-                        <tr key={item.code}>
-                          <td style={{ fontWeight: '600' }}>{item.code}</td>
-                          <td>
-                            <span className={`badge ${item.type === '완제품' ? 'badge-blue' : 'badge-pink'}`}>
-                              {item.type}
-                            </span>
-                          </td>
-                          <td style={{ fontWeight: '500' }}>{item.name}</td>
-                          <td style={{ textAlign: 'right' }}>{item.safetyStock.toLocaleString()}</td>
-                          <td style={{ textAlign: 'right', fontWeight: '700', color: item.stock <= item.safetyStock ? '#be123c' : 'inherit' }}>
-                            {item.stock.toLocaleString()}
-                          </td>
-                          <td>{item.unit}</td>
-                          <td>
-                            {item.stock <= item.safetyStock ? (
-                              <span style={{ color: '#be123c', fontSize: '12px', fontWeight: '600' }}>⚠️ 긴급 안전재고 미달 - 원자재 매입 필요</span>
-                            ) : (
-                              <span style={{ color: '#10b981', fontSize: '12px' }}>정상</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              {/* Deleted low stock alert summary section from dashboard view */}
 
             </div>
           )}
