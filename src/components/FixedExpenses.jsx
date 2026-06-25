@@ -55,6 +55,7 @@ export default function FixedExpenses({
     sungjin: 0,
     gwangmyeongG: 0,
     taxService: 0,
+    taxCorp: 0,
     ecount: 0,
     bsTech: 0,
     chungho: 0,
@@ -185,6 +186,7 @@ export default function FixedExpenses({
               sungjin: 0,
               gwangmyeongG: 0,
               taxService: 0,
+              taxCorp: 0,
               ecount: 0,
               bsTech: 0,
               chungho: 0,
@@ -220,7 +222,10 @@ export default function FixedExpenses({
           } else if (supplierName.includes('에스케이텔레콤') || supplierName.includes('에스케이델레콤')) {
             target.corporatePhone += totalAmt;
             target.skt += totalAmt;
-          } else if (supplierName.includes('기업세무회계') || supplierName.includes('세무') || supplierName.includes('회계')) {
+          } else if (supplierName === '기업세무회계') {
+            target.tax += totalAmt;
+            target.taxCorp += totalAmt;
+          } else if (supplierName.includes('기업세무회계경영') || supplierName.includes('세무') || supplierName.includes('회계')) {
             target.tax += totalAmt;
             target.taxService += totalAmt;
           } else {
@@ -252,6 +257,7 @@ export default function FixedExpenses({
                 sungjin: parsedExpenses.sungjin,
                 gwangmyeongG: parsedExpenses.gwangmyeongG,
                 taxService: parsedExpenses.taxService,
+                taxCorp: parsedExpenses.taxCorp,
                 ecount: parsedExpenses.ecount,
                 bsTech: parsedExpenses.bsTech,
                 chungho: parsedExpenses.chungho,
@@ -277,6 +283,7 @@ export default function FixedExpenses({
                 sungjin: parsedExpenses.sungjin,
                 gwangmyeongG: parsedExpenses.gwangmyeongG,
                 taxService: parsedExpenses.taxService,
+                taxCorp: parsedExpenses.taxCorp,
                 ecount: parsedExpenses.ecount,
                 bsTech: parsedExpenses.bsTech,
                 chungho: parsedExpenses.chungho,
@@ -411,6 +418,14 @@ export default function FixedExpenses({
     const kt = Math.round(phone * (44000 / 66000));
     const skt = phone - kt;
 
+    // Split tax: advisory fee (taxService) vs corporate tax adjustment (taxCorp)
+    let taxService = taxVal;
+    let taxCorp = 0;
+    if (taxVal > 200000) {
+      taxService = 132000;
+      taxCorp = taxVal - 132000;
+    }
+
     const record = {
       month: officeForm.month,
       tax: taxVal,
@@ -429,7 +444,8 @@ export default function FixedExpenses({
       // Synchronize partner fields
       bsTech: rent,
       gwangmyeongG: maint,
-      taxService: taxVal,
+      taxService,
+      taxCorp,
       samsungOA,
       chungho,
       sungjin,
@@ -473,6 +489,7 @@ export default function FixedExpenses({
     const sungjin = Number(partnerForm.sungjin);
     const gwangmyeongG = Number(partnerForm.gwangmyeongG);
     const taxService = Number(partnerForm.taxService);
+    const taxCorp = Number(partnerForm.taxCorp);
     const ecount = Number(partnerForm.ecount);
     const bsTech = Number(partnerForm.bsTech);
     const chungho = Number(partnerForm.chungho);
@@ -484,7 +501,7 @@ export default function FixedExpenses({
 
     const record = {
       month: partnerForm.month,
-      tax: taxService,
+      tax: taxService + taxCorp,
       corporatePhone: kt + skt,
       officeRent: bsTech,
       maintenance: gwangmyeongG,
@@ -503,6 +520,7 @@ export default function FixedExpenses({
       sungjin,
       gwangmyeongG,
       taxService,
+      taxCorp,
       ecount,
       bsTech,
       chungho,
@@ -999,6 +1017,7 @@ export default function FixedExpenses({
                     <th style={{ textAlign: 'right' }}>성진정보텍</th>
                     <th style={{ textAlign: 'right' }}>광명G타워</th>
                     <th style={{ textAlign: 'right' }}>기업세무회계경영</th>
+                    <th style={{ textAlign: 'right' }}>기업세무회계</th>
                     <th style={{ textAlign: 'right' }}>이카운트</th>
                     <th style={{ textAlign: 'right' }}>비에스테크광명(임대료)</th>
                     <th style={{ textAlign: 'right' }}>청호나이스</th>
@@ -1011,7 +1030,7 @@ export default function FixedExpenses({
                 <tbody>
                   {officeExpenses.length === 0 ? (
                     <tr>
-                      <td colSpan="12" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                      <td colSpan="13" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
                         등록된 거래처별 고정 지출 내역이 없습니다.
                       </td>
                     </tr>
@@ -1019,7 +1038,7 @@ export default function FixedExpenses({
                     officeExpenses.map(o => {
                       const rowSum = 
                         (o.samsungOA || 0) + (o.sungjin || 0) + (o.gwangmyeongG || 0) + 
-                        (o.taxService || 0) + (o.ecount || 0) + (o.bsTech || 0) + 
+                        (o.taxService || 0) + (o.taxCorp || 0) + (o.ecount || 0) + (o.bsTech || 0) + 
                         (o.chungho || 0) + (o.kt || 0) + (o.skt || 0);
                       return (
                         <tr key={o.month}>
@@ -1028,6 +1047,7 @@ export default function FixedExpenses({
                           <td style={{ textAlign: 'right' }}>{(o.sungjin || 0).toLocaleString()}</td>
                           <td style={{ textAlign: 'right' }}>{(o.gwangmyeongG || 0).toLocaleString()}</td>
                           <td style={{ textAlign: 'right' }}>{(o.taxService || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.taxCorp || 0).toLocaleString()}</td>
                           <td style={{ textAlign: 'right' }}>{(o.ecount || 0).toLocaleString()}</td>
                           <td style={{ textAlign: 'right' }}>{(o.bsTech || 0).toLocaleString()}</td>
                           <td style={{ textAlign: 'right' }}>{(o.chungho || 0).toLocaleString()}</td>
@@ -1047,6 +1067,7 @@ export default function FixedExpenses({
                                     sungjin: o.sungjin || 0,
                                     gwangmyeongG: o.gwangmyeongG || 0,
                                     taxService: o.taxService || 0,
+                                    taxCorp: o.taxCorp || 0,
                                     ecount: o.ecount || 0,
                                     bsTech: o.bsTech || 0,
                                     chungho: o.chungho || 0,
@@ -1541,6 +1562,16 @@ export default function FixedExpenses({
 
                 <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <div className="form-group">
+                    <label className="form-label">기업세무회계</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={partnerForm.taxCorp}
+                      onChange={(e) => setPartnerForm(prev => ({ ...prev, taxCorp: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="form-group">
                     <label className="form-label">이카운트</label>
                     <input 
                       type="number" 
@@ -1550,6 +1581,9 @@ export default function FixedExpenses({
                       onChange={(e) => setPartnerForm(prev => ({ ...prev, ecount: Number(e.target.value) }))}
                     />
                   </div>
+                </div>
+
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <div className="form-group">
                     <label className="form-label">청호나이스</label>
                     <input 
@@ -1560,9 +1594,6 @@ export default function FixedExpenses({
                       onChange={(e) => setPartnerForm(prev => ({ ...prev, chungho: Number(e.target.value) }))}
                     />
                   </div>
-                </div>
-
-                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <div className="form-group">
                     <label className="form-label">케이티</label>
                     <input 
@@ -1573,6 +1604,9 @@ export default function FixedExpenses({
                       onChange={(e) => setPartnerForm(prev => ({ ...prev, kt: Number(e.target.value) }))}
                     />
                   </div>
+                </div>
+
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <div className="form-group">
                     <label className="form-label">에스케이텔레콤</label>
                     <input 
@@ -1583,6 +1617,7 @@ export default function FixedExpenses({
                       onChange={(e) => setPartnerForm(prev => ({ ...prev, skt: Number(e.target.value) }))}
                     />
                   </div>
+                  <div className="form-group"></div>
                 </div>
 
                 <div style={{ marginTop: '16px', background: 'rgba(0,0,0,0.02)', padding: '12px', borderRadius: '6px', fontSize: '13px', border: '1px solid var(--border-color)' }}>
@@ -1590,7 +1625,7 @@ export default function FixedExpenses({
                   <span style={{ fontWeight: 'bold', color: 'var(--primary-blue)' }}>
                     {(
                       (partnerForm.samsungOA || 0) + (partnerForm.sungjin || 0) + (partnerForm.gwangmyeongG || 0) + 
-                      (partnerForm.taxService || 0) + (partnerForm.ecount || 0) + (partnerForm.bsTech || 0) + 
+                      (partnerForm.taxService || 0) + (partnerForm.taxCorp || 0) + (partnerForm.ecount || 0) + (partnerForm.bsTech || 0) + 
                       (partnerForm.chungho || 0) + (partnerForm.kt || 0) + (partnerForm.skt || 0)
                     ).toLocaleString()}
                   </span>

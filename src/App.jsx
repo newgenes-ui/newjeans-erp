@@ -4,7 +4,7 @@ import Accounting from './components/Accounting';
 import FixedExpenses from './components/FixedExpenses';
 
 // --- DATABASE VERSION FOR SEED RESET ---
-const DB_VERSION = '17';
+const DB_VERSION = '18';
 
 import initialPartners from './data/partners.json';
 import initialItems from './data/items.json';
@@ -163,7 +163,7 @@ export default function App() {
     const local = localStorage.getItem('nj_office_expenses');
     if (local) {
       const parsed = JSON.parse(local);
-      const needsPatch = parsed.some(o => !('samsungOA' in o));
+      const needsPatch = parsed.some(o => !('taxCorp' in o));
       if (!needsPatch) {
         return parsed;
       }
@@ -171,27 +171,28 @@ export default function App() {
     return [
       {
         month: '2026-06',
-        tax: 1650000,
-        corporatePhone: 43936,
-        officeRent: 1100000,
-        maintenance: 281210,
-        equipmentRental: 155900,
-        erpServiceFee: 59730,
+        tax: 0,
+        corporatePhone: 0,
+        officeRent: 0,
+        maintenance: 0,
+        equipmentRental: 0,
+        erpServiceFee: 0,
         avanteRental: 450000,
         rayInstallment: 280000,
         smallBizLoanInterest: 175000,
         ibkLoanInterest: 310000,
         kiboLoanInterest: 215000,
         creditLoanInterest: 245000,
-        // Partner breakdown
-        samsungOA: 110000,
-        sungjin: 15730,
-        gwangmyeongG: 281210,
-        taxService: 1650000,
-        ecount: 44000,
-        bsTech: 1100000,
-        chungho: 45900,
-        kt: 43936,
+        // Partner breakdown (All NTS categories are 0 because June data is not imported/issued yet)
+        samsungOA: 0,
+        sungjin: 0,
+        gwangmyeongG: 0,
+        taxService: 0,
+        taxCorp: 0,
+        ecount: 0,
+        bsTech: 0,
+        chungho: 0,
+        kt: 0,
         skt: 0
       },
       {
@@ -213,6 +214,7 @@ export default function App() {
         sungjin: 15730,
         gwangmyeongG: 281210,
         taxService: 0,
+        taxCorp: 0,
         ecount: 44000,
         bsTech: 1100000,
         chungho: 45900,
@@ -238,6 +240,7 @@ export default function App() {
         sungjin: 15730,
         gwangmyeongG: 333020,
         taxService: 165000,
+        taxCorp: 0,
         ecount: 44000,
         bsTech: 1100000,
         chungho: 45900,
@@ -262,7 +265,8 @@ export default function App() {
         samsungOA: 110000,
         sungjin: 15730,
         gwangmyeongG: 377860,
-        taxService: 2332000,
+        taxService: 132000,
+        taxCorp: 2200000,
         ecount: 44000,
         bsTech: 1100000,
         chungho: 45900,
@@ -288,6 +292,7 @@ export default function App() {
         sungjin: 15730,
         gwangmyeongG: 430680,
         taxService: 132000,
+        taxCorp: 0,
         ecount: 44000,
         bsTech: 1100000,
         chungho: 45900,
@@ -313,6 +318,7 @@ export default function App() {
         sungjin: 15730,
         gwangmyeongG: 393990,
         taxService: 132000,
+        taxCorp: 0,
         ecount: 44000,
         bsTech: 1100000,
         chungho: 45900,
