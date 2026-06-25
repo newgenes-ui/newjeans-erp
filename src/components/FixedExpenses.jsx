@@ -311,6 +311,130 @@ export default function FixedExpenses({
     readWithEncoding('UTF-8');
   };
 
+  const handleEmployeeCsvImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const readWithEncoding = (encoding) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target.result;
+        const rows = parseCSV(text);
+        
+        if (rows.length < 2) {
+          if (encoding === 'UTF-8') {
+            readWithEncoding('EUC-KR');
+            return;
+          }
+          alert('가져올 데이터가 부족합니다.');
+          return;
+        }
+
+        let headerRowIdx = -1;
+        for (let i = 0; i < rows.length; i++) {
+          const trimmedRow = rows[i].map(c => c.trim());
+          if (trimmedRow.includes('월') && trimmedRow.includes('구분') && trimmedRow.includes('급여')) {
+            headerRowIdx = i;
+            break;
+          }
+        }
+
+        if (headerRowIdx === -1) {
+          if (encoding === 'UTF-8') {
+            console.log("UTF-8 employee header match failed. Retrying with EUC-KR...");
+            readWithEncoding('EUC-KR');
+            return;
+          }
+          alert('급여 CSV 헤더(월, 구분, 급여 등)를 찾을 수 없습니다.');
+          return;
+        }
+
+        const headers = rows[headerRowIdx].map(h => h.trim());
+        const monthIdx = headers.indexOf('월');
+        const nameIdx = headers.indexOf('구분');
+        const salaryIdx = headers.indexOf('급여');
+        const insuranceIdx = headers.indexOf('4대보험');
+        const cardIdx = headers.indexOf('법인카드');
+        
+        if (monthIdx === -1 || nameIdx === -1 || salaryIdx === -1) {
+          alert('필수 열(월, 구분, 급여)을 찾을 수 없습니다.');
+          return;
+        }
+
+        const newEmployees = [];
+
+        for (let i = headerRowIdx + 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (row.length <= Math.max(monthIdx, nameIdx, salaryIdx)) continue;
+          
+          const monthRaw = row[monthIdx].trim();
+          if (!monthRaw) continue;
+
+          const monthNum = parseInt(monthRaw, 10);
+          if (isNaN(monthNum)) continue;
+
+          const empName = row[nameIdx].trim();
+          if (!empName) continue;
+
+          let empPosition = '사원';
+          if (empName === '김기환') empPosition = '대표이사';
+          else if (empName === '나혜원') empPosition = '팀원 (디자인)';
+          else if (empName === '양유지') empPosition = '팀원 (경영지원)';
+
+          const salaryVal = row[salaryIdx].trim().replace(/,/g, '');
+          const baseSalary = parseInt(salaryVal, 10) || 0;
+
+          const insuranceVal = insuranceIdx !== -1 ? row[insuranceIdx].trim().replace(/,/g, '') : '0';
+          const insurancesTotal = parseInt(insuranceVal, 10) || 0;
+
+          const cardVal = cardIdx !== -1 ? row[cardIdx].trim().replace(/,/g, '') : '0';
+          const cardUsage = parseInt(cardVal, 10) || 0;
+
+          const pension = Math.round(baseSalary * 0.045);
+          const health = Math.round(baseSalary * 0.0354);
+          const employment = Math.round(baseSalary * 0.009);
+          const netPay = baseSalary - insurancesTotal;
+
+          newEmployees.push({
+            id: `EMP-${monthNum}-${empName}-${Date.now().toString().slice(-4)}`,
+            month: monthNum,
+            name: empName,
+            position: empPosition,
+            baseSalary,
+            pension,
+            health,
+            employment,
+            insurancesTotal,
+            isAutoInsurance: false,
+            netPay,
+            cardUsage
+          });
+        }
+
+        if (newEmployees.length === 0) {
+          alert('파싱된 급여 내역이 없습니다.');
+          return;
+        }
+
+        setEmployees(newEmployees);
+        logActivity('급여', `급여 CSV 가져오기 완료 (${newEmployees.length}건 적용)`);
+        alert(`급여 CSV 파일이 성공적으로 파싱되어 ${newEmployees.length}명의 데이터가 적용되었습니다.`);
+      };
+
+      reader.onerror = () => {
+        if (encoding === 'UTF-8') {
+          readWithEncoding('EUC-KR');
+        } else {
+          alert('CSV 파일을 읽는 동안 오류가 발생했습니다.');
+        }
+      };
+
+      reader.readAsText(file, encoding);
+    };
+
+    readWithEncoding('UTF-8');
+  };
+
   // --- EMPLOYEE CRUD HANDLERS ---
   const handleEmployeeSalaryChange = (val) => {
     const base = Number(val);
@@ -720,6 +844,19 @@ export default function FixedExpenses({
                   >
                     💳 법인카드 사용 등록
                   </button>
+                  <button 
+                    className="btn btn-secondary"
+                    onClick={() => document.getElementById('employeeCsvFile').click()}
+                  >
+                    📄 급여 CSV 가져오기
+                  </button>
+                  <input 
+                    type="file" 
+                    id="employeeCsvFile" 
+                    accept=".csv" 
+                    style={{ display: 'none' }} 
+                    onChange={handleEmployeeCsvImport}
+                  />
                   <button 
                     className="btn btn-primary"
                     onClick={() => {
