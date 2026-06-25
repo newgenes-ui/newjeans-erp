@@ -4,7 +4,7 @@ import Accounting from './components/Accounting';
 import FixedExpenses from './components/FixedExpenses';
 
 // --- DATABASE VERSION FOR SEED RESET ---
-const DB_VERSION = '19';
+const DB_VERSION = '20';
 
 import initialPartners from './data/partners.json';
 import initialItems from './data/items.json';
@@ -163,7 +163,7 @@ export default function App() {
     const local = localStorage.getItem('nj_office_expenses');
     if (local) {
       const parsed = JSON.parse(local);
-      const needsPatch = parsed.some(o => !('taxCorp' in o) || o.taxCorp === 2200000); // Trigger patch update if taxCorp matches old swapped schema
+      const needsPatch = parsed.some(o => !('officeTax' in o)); // Trigger patch update if new officeTax field is missing
       if (!needsPatch) {
         return parsed;
       }
@@ -177,12 +177,14 @@ export default function App() {
         maintenance: 0,
         equipmentRental: 0,
         erpServiceFee: 0,
-        avanteRental: 450000,
-        rayInstallment: 280000,
-        smallBizLoanInterest: 175000,
-        ibkLoanInterest: 310000,
-        kiboLoanInterest: 215000,
-        creditLoanInterest: 245000,
+        officeTax: 0,
+        officePhone: 0,
+        avanteRental: 0,
+        rayInstallment: 0,
+        smallBizLoanInterest: 0,
+        ibkLoanInterest: 0,
+        kiboLoanInterest: 0,
+        creditLoanInterest: 0,
         // Partner breakdown (All NTS categories are 0 because June data is not imported/issued yet)
         samsungOA: 0,
         sungjin: 0,
@@ -203,12 +205,14 @@ export default function App() {
         maintenance: 281210,
         equipmentRental: 155900,
         erpServiceFee: 59730,
-        avanteRental: 450000,
-        rayInstallment: 280000,
-        smallBizLoanInterest: 180000,
-        ibkLoanInterest: 320000,
-        kiboLoanInterest: 220000,
-        creditLoanInterest: 250000,
+        officeTax: 136640,
+        officePhone: 111420,
+        avanteRental: 337000,
+        rayInstallment: 267139,
+        smallBizLoanInterest: 206202,
+        ibkLoanInterest: 352370,
+        kiboLoanInterest: 320460,
+        creditLoanInterest: 177174,
         // Partner breakdown
         samsungOA: 110000,
         sungjin: 15730,
@@ -229,12 +233,14 @@ export default function App() {
         maintenance: 333020,
         equipmentRental: 155900,
         erpServiceFee: 59730,
-        avanteRental: 450000,
-        rayInstallment: 280000,
-        smallBizLoanInterest: 182000,
-        ibkLoanInterest: 325000,
-        kiboLoanInterest: 224000,
-        creditLoanInterest: 255000,
+        officeTax: 4913250,
+        officePhone: 111420,
+        avanteRental: 337000,
+        rayInstallment: 267139,
+        smallBizLoanInterest: 206202,
+        ibkLoanInterest: 352370,
+        kiboLoanInterest: 320460,
+        creditLoanInterest: 177174,
         // Partner breakdown
         samsungOA: 110000,
         sungjin: 15730,
@@ -255,12 +261,14 @@ export default function App() {
         maintenance: 377860,
         equipmentRental: 155900,
         erpServiceFee: 59730,
-        avanteRental: 450000,
-        rayInstallment: 280000,
-        smallBizLoanInterest: 185000,
-        ibkLoanInterest: 330000,
-        kiboLoanInterest: 228000,
-        creditLoanInterest: 260000,
+        officeTax: 136540,
+        officePhone: 111420,
+        avanteRental: 337000,
+        rayInstallment: 267139,
+        smallBizLoanInterest: 0,
+        ibkLoanInterest: 352370,
+        kiboLoanInterest: 320460,
+        creditLoanInterest: 177174,
         // Partner breakdown
         samsungOA: 110000,
         sungjin: 15730,
@@ -281,12 +289,14 @@ export default function App() {
         maintenance: 430680,
         equipmentRental: 155900,
         erpServiceFee: 59730,
-        avanteRental: 450000,
-        rayInstallment: 280000,
-        smallBizLoanInterest: 188000,
-        ibkLoanInterest: 335000,
-        kiboLoanInterest: 232000,
-        creditLoanInterest: 265000,
+        officeTax: 16320,
+        officePhone: 111420,
+        avanteRental: 337000,
+        rayInstallment: 267139,
+        smallBizLoanInterest: 0,
+        ibkLoanInterest: 354795,
+        kiboLoanInterest: 324394,
+        creditLoanInterest: 196157,
         // Partner breakdown
         samsungOA: 110000,
         sungjin: 15730,
@@ -307,12 +317,14 @@ export default function App() {
         maintenance: 393990,
         equipmentRental: 155900,
         erpServiceFee: 59730,
-        avanteRental: 450000,
-        rayInstallment: 280000,
-        smallBizLoanInterest: 191000,
-        ibkLoanInterest: 340000,
-        kiboLoanInterest: 236000,
-        creditLoanInterest: 270000,
+        officeTax: 146760,
+        officePhone: 111420,
+        avanteRental: 337000,
+        rayInstallment: 267139,
+        smallBizLoanInterest: 0,
+        ibkLoanInterest: 354795,
+        kiboLoanInterest: 324394,
+        creditLoanInterest: 1152000,
         // Partner breakdown
         samsungOA: 110000,
         sungjin: 15730,

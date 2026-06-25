@@ -32,12 +32,8 @@ export default function FixedExpenses({
   const [editingOffice, setEditingOffice] = useState(null);
   const [officeForm, setOfficeForm] = useState({
     month: new Date().toISOString().substring(0, 7),
-    tax: 0,
-    corporatePhone: 0,
-    officeRent: 0,
-    maintenance: 0,
-    equipmentRental: 0,
-    erpServiceFee: 0,
+    officeTax: 0,
+    officePhone: 0,
     avanteRental: 0,
     rayInstallment: 0,
     smallBizLoanInterest: 0,
@@ -273,6 +269,8 @@ export default function FixedExpenses({
                 maintenance: parsedExpenses.maintenance,
                 equipmentRental: parsedExpenses.equipmentRental,
                 erpServiceFee: parsedExpenses.erpServiceFee,
+                officeTax: 0,
+                officePhone: 0,
                 avanteRental: 0,
                 rayInstallment: 0,
                 smallBizLoanInterest: 0,
@@ -404,6 +402,8 @@ export default function FixedExpenses({
       return;
     }
 
+    const officeTaxVal = Number(officeForm.officeTax);
+    const officePhoneVal = Number(officeForm.officePhone);
     const avante = Number(officeForm.avanteRental);
     const ray = Number(officeForm.rayInstallment);
     const smallBiz = Number(officeForm.smallBizLoanInterest);
@@ -416,6 +416,8 @@ export default function FixedExpenses({
 
     const record = {
       month: officeForm.month,
+      officeTax: officeTaxVal,
+      officePhone: officePhoneVal,
       avanteRental: avante,
       rayInstallment: ray,
       smallBizLoanInterest: smallBiz,
@@ -498,12 +500,14 @@ export default function FixedExpenses({
       equipmentRental: samsungOA + chungho,
       erpServiceFee: sungjin + ecount,
       
-      avanteRental: existing.avanteRental !== undefined ? existing.avanteRental : 450000,
-      rayInstallment: existing.rayInstallment !== undefined ? existing.rayInstallment : 280000,
-      smallBizLoanInterest: existing.smallBizLoanInterest !== undefined ? existing.smallBizLoanInterest : 180000,
-      ibkLoanInterest: existing.ibkLoanInterest !== undefined ? existing.ibkLoanInterest : 320000,
-      kiboLoanInterest: existing.kiboLoanInterest !== undefined ? existing.kiboLoanInterest : 220000,
-      creditLoanInterest: existing.creditLoanInterest !== undefined ? existing.creditLoanInterest : 250000,
+      officeTax: existing.officeTax !== undefined ? existing.officeTax : 0,
+      officePhone: existing.officePhone !== undefined ? existing.officePhone : 0,
+      avanteRental: existing.avanteRental !== undefined ? existing.avanteRental : 0,
+      rayInstallment: existing.rayInstallment !== undefined ? existing.rayInstallment : 0,
+      smallBizLoanInterest: existing.smallBizLoanInterest !== undefined ? existing.smallBizLoanInterest : 0,
+      ibkLoanInterest: existing.ibkLoanInterest !== undefined ? existing.ibkLoanInterest : 0,
+      kiboLoanInterest: existing.kiboLoanInterest !== undefined ? existing.kiboLoanInterest : 0,
+      creditLoanInterest: existing.creditLoanInterest !== undefined ? existing.creditLoanInterest : 0,
 
       // Partner fields
       samsungOA,
@@ -598,16 +602,17 @@ export default function FixedExpenses({
 
   const latestOfficeRecord = officeExpenses[0] || {
     tax: 0, corporatePhone: 0, officeRent: 0, maintenance: 0, equipmentRental: 0, erpServiceFee: 0,
+    officeTax: 0, officePhone: 0,
     avanteRental: 0, rayInstallment: 0, smallBizLoanInterest: 0, ibkLoanInterest: 0, kiboLoanInterest: 0, creditLoanInterest: 0
   };
 
   const officeMonthlySum = 
     (latestOfficeRecord.officeRent || 0) +
     (latestOfficeRecord.maintenance || 0) +
-    (latestOfficeRecord.corporatePhone || 0) +
     (latestOfficeRecord.equipmentRental || 0) +
     (latestOfficeRecord.erpServiceFee || 0) +
-    (latestOfficeRecord.tax || 0) +
+    (latestOfficeRecord.officeTax || 0) +
+    (latestOfficeRecord.officePhone || 0) +
     (latestOfficeRecord.avanteRental || 0) + 
     (latestOfficeRecord.rayInstallment || 0) + 
     (latestOfficeRecord.smallBizLoanInterest || 0) + 
@@ -816,7 +821,7 @@ export default function FixedExpenses({
         {fixedTab === 'office' && (
           <div>
             <div className="panel-header" style={{ marginBottom: '16px' }}>
-              <h3 className="panel-title" style={{ fontSize: '15px' }}>사무실 월별 차량/대출 고정비용 기록대장</h3>
+              <h3 className="panel-title" style={{ fontSize: '15px' }}>사무실 월별 고정비용 기록대장</h3>
               <div className="btn-group">
                 <button 
                   className="btn btn-primary"
@@ -824,6 +829,8 @@ export default function FixedExpenses({
                     setEditingOffice(null);
                     setOfficeForm({
                       month: new Date().toISOString().substring(0, 7),
+                      officeTax: 0,
+                      officePhone: 0,
                       avanteRental: 0,
                       rayInstallment: 0,
                       smallBizLoanInterest: 0,
@@ -844,6 +851,8 @@ export default function FixedExpenses({
                 <thead>
                   <tr>
                     <th>년월</th>
+                    <th style={{ textAlign: 'right' }}>세금</th>
+                    <th style={{ textAlign: 'right' }}>법인핸드폰</th>
                     <th style={{ textAlign: 'right' }}>아반테 렌탈</th>
                     <th style={{ textAlign: 'right' }}>레이 할부</th>
                     <th style={{ textAlign: 'right' }}>소상공인 이자</th>
@@ -857,18 +866,21 @@ export default function FixedExpenses({
                 <tbody>
                   {officeExpenses.length === 0 ? (
                     <tr>
-                      <td colSpan="9" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                      <td colSpan="11" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
                         등록된 월별 고정 지출 내역이 없습니다.
                       </td>
                     </tr>
                   ) : (
                     officeExpenses.map(o => {
-                      const rowSum = (o.avanteRental || 0) + (o.rayInstallment || 0) + 
+                      const rowSum = (o.officeTax || 0) + (o.officePhone || 0) + 
+                        (o.avanteRental || 0) + (o.rayInstallment || 0) + 
                         (o.smallBizLoanInterest || 0) + (o.ibkLoanInterest || 0) + 
                         (o.kiboLoanInterest || 0) + (o.creditLoanInterest || 0);
                       return (
                         <tr key={o.month}>
                           <td style={{ fontWeight: '700' }}>{o.month}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.officeTax || 0).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right' }}>{(o.officePhone || 0).toLocaleString()}</td>
                           <td style={{ textAlign: 'right' }}>{(o.avanteRental || 0).toLocaleString()}</td>
                           <td style={{ textAlign: 'right' }}>{(o.rayInstallment || 0).toLocaleString()}</td>
                           <td style={{ textAlign: 'right', color: '#b45309' }}>{(o.smallBizLoanInterest || 0).toLocaleString()}</td>
@@ -885,6 +897,8 @@ export default function FixedExpenses({
                                   setEditingOffice(o);
                                   setOfficeForm({
                                     month: o.month,
+                                    officeTax: o.officeTax || 0,
+                                    officePhone: o.officePhone || 0,
                                     avanteRental: o.avanteRental || 0,
                                     rayInstallment: o.rayInstallment || 0,
                                     smallBizLoanInterest: o.smallBizLoanInterest || 0,
@@ -1162,7 +1176,7 @@ export default function FixedExpenses({
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '600px' }}>
             <div className="modal-header">
-              <h2 className="panel-title">{editingOffice ? '차량/대출 고정 지출 수정' : '차량/대출 고정 지출 등록'}</h2>
+              <h2 className="panel-title">{editingOffice ? '사무실 고정 지출 수정' : '사무실 고정 지출 등록'}</h2>
               <button className="modal-close" onClick={() => setShowOfficeModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleOfficeSubmit}>
@@ -1188,6 +1202,29 @@ export default function FixedExpenses({
                       min="0"
                       value={officeForm.avanteRental}
                       onChange={(e) => setOfficeForm(prev => ({ ...prev, avanteRental: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div className="form-group">
+                    <label className="form-label">세금</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={officeForm.officeTax}
+                      onChange={(e) => setOfficeForm(prev => ({ ...prev, officeTax: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">법인핸드폰</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      min="0"
+                      value={officeForm.officePhone}
+                      onChange={(e) => setOfficeForm(prev => ({ ...prev, officePhone: Number(e.target.value) }))}
                     />
                   </div>
                 </div>
@@ -1257,6 +1294,7 @@ export default function FixedExpenses({
                   <span style={{ fontWeight: 'bold' }}>입력 항목 합계: </span>
                   <span style={{ fontWeight: 'bold', color: 'var(--primary-blue)' }}>
                     {(
+                      (officeForm.officeTax || 0) + (officeForm.officePhone || 0) + 
                       (officeForm.avanteRental || 0) + (officeForm.rayInstallment || 0) + 
                       (officeForm.smallBizLoanInterest || 0) + (officeForm.ibkLoanInterest || 0) + 
                       (officeForm.kiboLoanInterest || 0) + (officeForm.creditLoanInterest || 0)
