@@ -4,7 +4,7 @@ import Accounting from './components/Accounting';
 import FixedExpenses from './components/FixedExpenses';
 
 // --- DATABASE VERSION FOR SEED RESET ---
-const DB_VERSION = '18';
+const DB_VERSION = '19';
 
 import initialPartners from './data/partners.json';
 import initialItems from './data/items.json';
@@ -163,7 +163,7 @@ export default function App() {
     const local = localStorage.getItem('nj_office_expenses');
     if (local) {
       const parsed = JSON.parse(local);
-      const needsPatch = parsed.some(o => !('taxCorp' in o));
+      const needsPatch = parsed.some(o => !('taxCorp' in o) || o.taxCorp === 2200000); // Trigger patch update if taxCorp matches old swapped schema
       if (!needsPatch) {
         return parsed;
       }
@@ -239,8 +239,8 @@ export default function App() {
         samsungOA: 110000,
         sungjin: 15730,
         gwangmyeongG: 333020,
-        taxService: 165000,
-        taxCorp: 0,
+        taxService: 0,
+        taxCorp: 165000,
         ecount: 44000,
         bsTech: 1100000,
         chungho: 45900,
@@ -265,8 +265,8 @@ export default function App() {
         samsungOA: 110000,
         sungjin: 15730,
         gwangmyeongG: 377860,
-        taxService: 132000,
-        taxCorp: 2200000,
+        taxService: 2200000,
+        taxCorp: 132000,
         ecount: 44000,
         bsTech: 1100000,
         chungho: 45900,
@@ -291,8 +291,8 @@ export default function App() {
         samsungOA: 110000,
         sungjin: 15730,
         gwangmyeongG: 430680,
-        taxService: 132000,
-        taxCorp: 0,
+        taxService: 0,
+        taxCorp: 132000,
         ecount: 44000,
         bsTech: 1100000,
         chungho: 45900,
@@ -317,8 +317,8 @@ export default function App() {
         samsungOA: 110000,
         sungjin: 15730,
         gwangmyeongG: 393990,
-        taxService: 132000,
-        taxCorp: 0,
+        taxService: 0,
+        taxCorp: 132000,
         ecount: 44000,
         bsTech: 1100000,
         chungho: 45900,

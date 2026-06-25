@@ -224,14 +224,14 @@ export default function FixedExpenses({
             target.skt += totalAmt;
           } else if (supplierName === '기업세무회계') {
             target.tax += totalAmt;
-            target.taxCorp += totalAmt;
+            target.taxService += totalAmt;
           } else if (supplierName.includes('기업세무회계경영') || supplierName.includes('세무') || supplierName.includes('회계')) {
             target.tax += totalAmt;
-            target.taxService += totalAmt;
+            target.taxCorp += totalAmt;
           } else {
             // Tax advisor or others go to tax
             target.tax += totalAmt;
-            target.taxService += totalAmt;
+            target.taxCorp += totalAmt;
           }
         }
 
@@ -418,12 +418,12 @@ export default function FixedExpenses({
     const kt = Math.round(phone * (44000 / 66000));
     const skt = phone - kt;
 
-    // Split tax: advisory fee (taxService) vs corporate tax adjustment (taxCorp)
-    let taxService = taxVal;
-    let taxCorp = 0;
+    // Split tax: advisory fee (taxCorp) vs corporate tax adjustment (taxService)
+    let taxCorp = taxVal;
+    let taxService = 0;
     if (taxVal > 200000) {
-      taxService = 132000;
-      taxCorp = taxVal - 132000;
+      taxCorp = 132000;
+      taxService = taxVal - 132000;
     }
 
     const record = {
