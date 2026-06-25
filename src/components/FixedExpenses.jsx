@@ -19,10 +19,10 @@ export default function FixedExpenses({
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [employeeForm, setEmployeeForm] = useState({
+    month: 5,
     name: '',
     position: '',
     baseSalary: 0,
-    isAutoInsurance: true,
     insurancesTotal: 0,
     cardUsage: 0
   });
@@ -352,6 +352,7 @@ export default function FixedExpenses({
     if (editingEmployee) {
       setEmployees(prev => prev.map(emp => emp.id === editingEmployee.id ? {
         ...emp,
+        month: Number(employeeForm.month),
         name: employeeForm.name,
         position: employeeForm.position,
         baseSalary: base,
@@ -367,6 +368,7 @@ export default function FixedExpenses({
     } else {
       const newEmp = {
         id: 'EMP-' + Date.now(),
+        month: Number(employeeForm.month),
         name: employeeForm.name,
         position: employeeForm.position,
         baseSalary: base,
@@ -696,123 +698,136 @@ export default function FixedExpenses({
         </div>
 
         {/* --- TAB 1: 직원별 고정 지출 --- */}
-        {fixedTab === 'employee' && (
-          <div>
-            <div className="panel-header" style={{ marginBottom: '16px' }}>
-              <h3 className="panel-title" style={{ fontSize: '15px' }}>직원별 급여, 4대보험 및 법인카드 지출대장</h3>
-              <div className="btn-group">
-                <button 
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setCardForm({
-                      date: new Date().toISOString().substring(0, 10),
-                      cardNum: 'KB국민법인카드 (9482)',
-                      partner: '',
-                      purchaseAmt: 0,
-                      cardUser: ''
-                    });
-                    setShowCardModal(true);
-                  }}
-                >
-                  💳 법인카드 사용 등록
-                </button>
-                <button 
-                  className="btn btn-primary"
-                  onClick={() => {
-                    setEditingEmployee(null);
-                    setEmployeeForm({
-                      name: '',
-                      position: '',
-                      baseSalary: 0,
-                      isAutoInsurance: true,
-                      insurancesTotal: 0,
-                      cardUsage: 0
-                    });
-                    setShowEmployeeModal(true);
-                  }}
-                >
-                  + 신규 직원 등록
-                </button>
+        {fixedTab === 'employee' && (() => {
+          const sortedEmployees = [...employees].sort((a, b) => b.month - a.month || a.name.localeCompare(b.name));
+          return (
+            <div>
+              <div className="panel-header" style={{ marginBottom: '16px' }}>
+                <h3 className="panel-title" style={{ fontSize: '15px' }}>직원별 급여, 4대보험 및 법인카드 지출대장</h3>
+                <div className="btn-group">
+                  <button 
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setCardForm({
+                        date: new Date().toISOString().substring(0, 10),
+                        cardNum: 'KB국민법인카드 (9482)',
+                        partner: '',
+                        purchaseAmt: 0,
+                        cardUser: ''
+                      });
+                      setShowCardModal(true);
+                    }}
+                  >
+                    💳 법인카드 사용 등록
+                  </button>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setEditingEmployee(null);
+                      setEmployeeForm({
+                        month: 5,
+                        name: '',
+                        position: '',
+                        baseSalary: 0,
+                        isAutoInsurance: true,
+                        insurancesTotal: 0,
+                        cardUsage: 0
+                      });
+                      setShowEmployeeModal(true);
+                    }}
+                  >
+                    + 신규 직원 등록
+                  </button>
+                </div>
               </div>
-            </div>
 
-             <div className="table-responsive">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th>사원ID</th>
-                    <th>성명</th>
-                    <th>직급/부서</th>
-                    <th style={{ textAlign: 'right' }}>급여 (기본급)</th>
-                    <th style={{ textAlign: 'right' }}>4대보험 전체금액</th>
-                    <th style={{ textAlign: 'right' }}>법인카드 사용금액</th>
-                    <th style={{ textAlign: 'center' }}>작업</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {employees.length === 0 ? (
+              <div className="table-responsive">
+                <table className="erp-table">
+                  <thead>
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
-                        등록된 직원 내역이 없습니다.
-                      </td>
+                      <th style={{ textAlign: 'center' }}>월</th>
+                      <th>성명</th>
+                      <th>직급</th>
+                      <th style={{ textAlign: 'right' }}>급여</th>
+                      <th style={{ textAlign: 'right' }}>4대보험료</th>
+                      <th style={{ textAlign: 'right' }}>법인카드사용금액</th>
+                      <th style={{ textAlign: 'right' }}>월합계</th>
+                      <th style={{ textAlign: 'center' }}>작업</th>
                     </tr>
-                  ) : (
-                    employees.map(emp => (
-                      <tr key={emp.id}>
-                        <td style={{ fontWeight: '600' }}>{emp.id}</td>
-                        <td style={{ fontWeight: '500' }}>{emp.name}</td>
-                        <td>{emp.position}</td>
-                        <td style={{ textAlign: 'right', fontWeight: '500' }}>{emp.baseSalary.toLocaleString()}</td>
-                        <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>
-                          {(emp.insurancesTotal || (emp.pension + emp.health + emp.employment) || 0).toLocaleString()}
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: '500', color: '#be123c' }}>{(emp.cardUsage || 0).toLocaleString()}</td>
-                        <td style={{ textAlign: 'center' }}>
-                          <div className="btn-group" style={{ justifyContent: 'center', gap: '6px' }}>
-                            <button 
-                              className="btn btn-secondary" 
-                              style={{ padding: '3px 8px', fontSize: '11px' }}
-                              onClick={() => {
-                                setEditingEmployee(emp);
-                                setEmployeeForm({
-                                  name: emp.name,
-                                  position: emp.position,
-                                  baseSalary: emp.baseSalary,
-                                  isAutoInsurance: emp.isAutoInsurance !== undefined ? emp.isAutoInsurance : true,
-                                  insurancesTotal: emp.insurancesTotal || (emp.pension + emp.health + emp.employment) || 0,
-                                  cardUsage: emp.cardUsage || 0
-                                });
-                                setShowEmployeeModal(true);
-                              }}
-                            >
-                              수정
-                            </button>
-                            <button 
-                              className="btn btn-danger" 
-                              style={{ padding: '3px 8px', fontSize: '11px' }}
-                              onClick={() => handleDeleteEmployee(emp.id)}
-                            >
-                              삭제
-                            </button>
-                          </div>
+                  </thead>
+                  <tbody>
+                    {sortedEmployees.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                          등록된 직원 내역이 없습니다.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-                <tfoot>
-                  <tr style={{ fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.05)' }}>
-                    <td colSpan="3" style={{ textAlign: 'center' }}>합계</td>
-                    <td style={{ textAlign: 'right' }}>{totalEmployeesSalary.toLocaleString()}</td>
-                    <td style={{ textAlign: 'right' }}>{totalEmployeesInsurances.toLocaleString()}</td>
-                    <td style={{ textAlign: 'right', color: '#be123c' }}>{totalEmployeesCard.toLocaleString()}</td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
+                    ) : (
+                      sortedEmployees.map(emp => {
+                        const rowTotal = emp.baseSalary + (emp.insurancesTotal || 0) + (emp.cardUsage || 0);
+                        return (
+                          <tr key={emp.id}>
+                            <td style={{ textAlign: 'center', fontWeight: '600' }}>{emp.month}월</td>
+                            <td style={{ fontWeight: '500' }}>{emp.name}</td>
+                            <td>{emp.position}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '500' }}>{emp.baseSalary.toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>
+                              {(emp.insurancesTotal || 0).toLocaleString()}
+                            </td>
+                            <td style={{ textAlign: 'right', fontWeight: '500', color: '#be123c' }}>{(emp.cardUsage || 0).toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-blue)' }}>{rowTotal.toLocaleString()}</td>
+                            <td style={{ textAlign: 'center' }}>
+                              <div className="btn-group" style={{ justifyContent: 'center', gap: '6px' }}>
+                                <button 
+                                  className="btn btn-secondary" 
+                                  style={{ padding: '3px 8px', fontSize: '11px' }}
+                                  onClick={() => {
+                                    setEditingEmployee(emp);
+                                    setEmployeeForm({
+                                      month: emp.month || 5,
+                                      name: emp.name,
+                                      position: emp.position,
+                                      baseSalary: emp.baseSalary,
+                                      isAutoInsurance: emp.isAutoInsurance !== undefined ? emp.isAutoInsurance : true,
+                                      insurancesTotal: emp.insurancesTotal || 0,
+                                      cardUsage: emp.cardUsage || 0
+                                    });
+                                    setShowEmployeeModal(true);
+                                  }}
+                                >
+                                  수정
+                                </button>
+                                <button 
+                                  className="btn btn-danger" 
+                                  style={{ padding: '3px 8px', fontSize: '11px' }}
+                                  onClick={() => handleDeleteEmployee(emp.id)}
+                                >
+                                  삭제
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.05)' }}>
+                      <td colSpan="3" style={{ textAlign: 'center' }}>합계</td>
+                      <td style={{ textAlign: 'right' }}>{totalEmployeesSalary.toLocaleString()}</td>
+                      <td style={{ textAlign: 'right' }}>{totalEmployeesInsurances.toLocaleString()}</td>
+                      <td style={{ textAlign: 'right', color: '#be123c' }}>{totalEmployeesCard.toLocaleString()}</td>
+                      <td style={{ textAlign: 'right', color: 'var(--primary-blue)' }}>
+                        {(totalEmployeesSalary + totalEmployeesInsurances + totalEmployeesCard).toLocaleString()}
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* --- TAB 2: 월별 고정 사무실 지출 --- */}
         {fixedTab === 'office' && (
@@ -1075,7 +1090,21 @@ export default function FixedExpenses({
               <div className="modal-body">
                 
                 <div className="form-group" style={{ marginBottom: '12px' }}>
-                  <label className="form-label">사원 성명 *</label>
+                  <label className="form-label">지출 월 *</label>
+                  <select 
+                    className="form-control" 
+                    required 
+                    value={employeeForm.month}
+                    onChange={(e) => setEmployeeForm(prev => ({ ...prev, month: Number(e.target.value) }))}
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
+                      <option key={m} value={m}>{m}월</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '12px' }}>
+                  <label className="form-label">성명 *</label>
                   <input 
                     type="text" 
                     className="form-control" 
@@ -1087,19 +1116,19 @@ export default function FixedExpenses({
                 </div>
 
                 <div className="form-group" style={{ marginBottom: '12px' }}>
-                  <label className="form-label">직급/부서 *</label>
+                  <label className="form-label">직급 *</label>
                   <input 
                     type="text" 
                     className="form-control" 
                     required 
                     value={employeeForm.position}
                     onChange={(e) => setEmployeeForm(prev => ({ ...prev, position: e.target.value }))}
-                    placeholder="예: 아티스트, 대리 (인사팀)"
+                    placeholder="예: 대표이사, 팀원 (디자인)"
                   />
                 </div>
 
                 <div className="form-group" style={{ marginBottom: '12px' }}>
-                  <label className="form-label">기본급 *</label>
+                  <label className="form-label">급여 *</label>
                   <input 
                     type="number" 
                     className="form-control" 
@@ -1124,7 +1153,7 @@ export default function FixedExpenses({
                     </label>
                   </div>
                   
-                  <label className="form-label">4대보험 전체금액 *</label>
+                  <label className="form-label">4대보험료 *</label>
                   <input 
                     type="number" 
                     className="form-control" 
@@ -1138,7 +1167,7 @@ export default function FixedExpenses({
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">법인카드 사용액</label>
+                  <label className="form-label">법인카드사용금액</label>
                   <input 
                     type="number" 
                     className="form-control" 
@@ -1148,8 +1177,6 @@ export default function FixedExpenses({
                     placeholder="법인카드 사용액 입력"
                   />
                 </div>
-
-
 
               </div>
               <div className="modal-footer">
@@ -1357,11 +1384,14 @@ export default function FixedExpenses({
                     onChange={(e) => setCardForm(prev => ({ ...prev, cardUser: e.target.value }))}
                   >
                     <option value="">-- 사원을 선택하세요 (선택 사항) --</option>
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.name}>
-                        {emp.name} ({emp.position})
-                      </option>
-                    ))}
+                    {Array.from(new Set(employees.map(emp => emp.name))).map(name => {
+                      const emp = employees.find(e => e.name === name);
+                      return (
+                        <option key={emp.id} value={name}>
+                          {name} ({emp.position})
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
