@@ -28,11 +28,13 @@ export default function Inventory({
   const [editingItem, setEditingItem] = useState(null);
   const [editingPartner, setEditingPartner] = useState(null);
   const [editingSales, setEditingSales] = useState(null);
+  const [editingPurchase, setEditingPurchase] = useState(null);
   
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
   const [salesSearchQuery, setSalesSearchQuery] = useState('');
+  const [purchaseSearchQuery, setPurchaseSearchQuery] = useState('');
 
   // Searchable select states for item selection
   const [salesItemSearchText, setSalesItemSearchText] = useState('');
@@ -82,13 +84,17 @@ export default function Inventory({
   // Form States - Purchase
   const [purchaseForm, setPurchaseForm] = useState({
     date: new Date().toISOString().substring(0, 10),
+    seq: 1,
     vendor: '',
+    customer: '',
+    note: '',
     itemCode: '',
     qty: 0,
     price: 0,
     supplyValue: 0,
     vat: 0,
-    paymentMethod: '계좌'
+    paymentMethod: '계좌',
+    employee: '양유지'
   });
 
   // Calculate supply value and VAT in forms
@@ -155,6 +161,14 @@ export default function Inventory({
       seq: dateSales.length + 1
     }));
   }, [salesForm.date, sales]);
+
+  useEffect(() => {
+    const datePurchases = purchases.filter(p => p.date === purchaseForm.date);
+    setPurchaseForm(prev => ({
+      ...prev,
+      seq: datePurchases.length + 1
+    }));
+  }, [purchaseForm.date, purchases]);
 
   // --- ITEM CRUD HANDLERS ---
   const handleItemSubmit = (e) => {
@@ -278,6 +292,13 @@ export default function Inventory({
     setShowSalesModal(true);
   };
 
+  const triggerEditPurchase = (purchase) => {
+    setEditingPurchase(purchase);
+    setPurchaseForm({ ...purchase });
+    setPurchaseItemSearchText(purchase.itemName ? (purchase.itemCode ? `[${purchase.itemCode}] ${purchase.itemName}` : purchase.itemName) : '');
+    setShowPurchaseModal(true);
+  };
+
   const handleSelectSalesItem = (item) => {
     setSalesForm(prev => ({
       ...prev,
@@ -372,34 +393,62 @@ export default function Inventory({
 
   const handlePurchaseSubmit = (e) => {
     e.preventDefault();
-    if (!purchaseForm.vendor || !purchaseForm.itemCode || purchaseForm.qty <= 0) {
-      alert('매입처, 품목, 수량을 모두 확인해 주세요.');
+    if (!purchaseForm.vendor || purchaseForm.qty <= 0) {
+      alert('매입처와 수량을 모두 확인해 주세요.');
       return;
     }
 
-    const item = items.find(i => i.code === purchaseForm.itemCode);
-    if (!item) {
-      alert('유효하지 않은 품목입니다.');
-      return;
+    let itemName = purchaseForm.itemName || '';
+    if (purchaseForm.itemCode) {
+      const item = items.find(i => i.code === purchaseForm.itemCode);
+      if (!item) {
+        alert('유효하지 않은 품목입니다.');
+        return;
+      }
+      itemName = item.name;
     }
 
-    const newPurchase = {
-      id: 'PC-' + Date.now(),
-      ...purchaseForm,
-      qty: Number(purchaseForm.qty),
-      price: Number(purchaseForm.price),
-      itemName: item.name
-    };
+    if (editingPurchase) {
+      setPurchases(prev => prev.map(p => p.id === editingPurchase.id ? { 
+        ...p, 
+        ...purchaseForm, 
+        qty: Number(purchaseForm.qty), 
+        price: Number(purchaseForm.price), 
+        itemName 
+      } : p));
+      logActivity('재고', `구매 전표 수정: ${purchaseForm.vendor} - ${itemName}`);
+      setEditingPurchase(null);
+    } else {
+      const newPurchase = {
+        id: 'PC-' + Date.now(),
+        ...purchaseForm,
+        qty: Number(purchaseForm.qty),
+        price: Number(purchaseForm.price),
+        itemName
+      };
+      setPurchases(prev => [newPurchase, ...prev]);
+      if (purchaseForm.itemCode) {
+        setItems(prev => prev.map(i => i.code === purchaseForm.itemCode ? { ...i, stock: i.stock + Number(purchaseForm.qty) } : i));
+      }
+      logActivity('재고', `구매 전표 등록: ${purchaseForm.vendor} - ${itemName} ${purchaseForm.qty}개`);
+    }
 
-    setPurchases(prev => [newPurchase, ...prev]);
-    setItems(prev => prev.map(i => i.code === purchaseForm.itemCode ? { ...i, stock: i.stock + Number(purchaseForm.qty) } : i));
-    logActivity('재고', `구매 전표 등록: ${purchaseForm.vendor} - ${item.name} ${purchaseForm.qty}개`);
     setShowPurchaseModal(false);
     setPurchaseItemSearchText('');
     
     setPurchaseForm({
       date: new Date().toISOString().substring(0, 10),
-      vendor: '', itemCode: '', qty: 0, price: 0, supplyValue: 0, vat: 0, paymentMethod: '계좌'
+      seq: 1,
+      vendor: '',
+      customer: '',
+      note: '',
+      itemCode: '',
+      qty: 0,
+      price: 0,
+      supplyValue: 0,
+      vat: 0,
+      paymentMethod: '계좌',
+      employee: '양유지'
     });
   };
 
@@ -869,13 +918,26 @@ export default function Inventory({
         <div className="panel-card">
           <div className="panel-header">
             <h2 className="panel-title">구매 매입 대장 (Purchase Ledger)</h2>
-            <div className="btn-group">
+            <div className="search-filter-bar">
+              <input 
+                type="text" 
+                className="form-control" 
+                placeholder="거래처명, 품목명, 사원 검색..." 
+                value={purchaseSearchQuery}
+                onChange={(e) => setPurchaseSearchQuery(e.target.value)}
+                style={{ width: '220px' }}
+              />
               <button 
                 className="btn btn-primary"
                 onClick={() => {
+                  const defaultVendor = partners.length > 0 ? partners[0].name : '';
                   setPurchaseForm(prev => ({
                     ...prev,
-                    vendor: partners.length > 0 ? partners[0].name : ''
+                    vendor: defaultVendor,
+                    customer: '',
+                    note: '',
+                    date: new Date().toISOString().substring(0, 10),
+                    employee: '양유지'
                   }));
                   setPurchaseItemSearchText('');
                   setShowPurchaseModal(true);
@@ -886,6 +948,7 @@ export default function Inventory({
               <button 
                 className="btn btn-secondary"
                 onClick={handleImportDesktopPurchases}
+                style={{ marginLeft: '8px' }}
               >
                 📂 바탕화면 구매조회 가져오기
               </button>
@@ -896,53 +959,59 @@ export default function Inventory({
             <table className="erp-table">
               <thead>
                 <tr>
-                  <th>전표번호</th>
-                  <th>구매일자</th>
-                  <th>매입처</th>
-                  <th>품목명</th>
-                  <th style={{ textAlign: 'right' }}>수량</th>
-                  <th style={{ textAlign: 'right' }}>단가</th>
-                  <th style={{ textAlign: 'right' }}>공급가액</th>
-                  <th style={{ textAlign: 'right' }}>부가세</th>
-                  <th style={{ textAlign: 'right' }}>합계금액</th>
-                  <th>결제방법</th>
+                  <th style={{ width: '40px', textAlign: 'center' }}><input type="checkbox" /></th>
+                  <th>일자-No.</th>
+                  <th>거래처명</th>
+                  <th>납품처1</th>
+                  <th>사양</th>
+                  <th>품목명(요약)</th>
+                  <th style={{ textAlign: 'right' }}>금액합계</th>
+                  <th>사원(담당)명</th>
+                  <th style={{ textAlign: 'center' }}>송</th>
                 </tr>
               </thead>
               <tbody>
-                {purchases.length === 0 ? (
-                  <tr>
-                    <td colSpan="10" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
-                      등록된 구매 거래 내역이 없습니다.
-                    </td>
-                  </tr>
-                ) : (
-                  purchases.map(purchase => (
+                {(() => {
+                  const filteredPurchases = purchases.filter(purchase => 
+                    (purchase.vendor || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
+                    (purchase.customer || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
+                    (purchase.itemName || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
+                    (purchase.employee || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
+                    (purchase.note || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
+                    (purchase.paymentMethod || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
+                    (purchase.date || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase())
+                  );
+                  if (filteredPurchases.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan="9" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                          검색 결과 또는 등록된 구매 거래 내역이 없습니다.
+                        </td>
+                      </tr>
+                    );
+                  }
+                  return filteredPurchases.map(purchase => (
                     <tr key={purchase.id}>
-                      <td style={{ fontWeight: '600', color: 'var(--primary-pink)' }}>{purchase.id}</td>
-                      <td>{purchase.date}</td>
-                      <td style={{ fontWeight: '500' }}>{purchase.vendor}</td>
-                      <td>
-                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginRight: '6px' }}>[{purchase.itemCode}]</span>
-                        {purchase.itemName}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: '600' }}>{Number(purchase.qty).toLocaleString()}</td>
-                      <td style={{ textAlign: 'right' }}>{Number(purchase.price).toLocaleString()}원</td>
-                      <td style={{ textAlign: 'right' }}>{Number(purchase.supplyValue).toLocaleString()}원</td>
-                      <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{Number(purchase.vat).toLocaleString()}원</td>
-                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-pink)' }}>
-                        {(Number(purchase.supplyValue) + Number(purchase.vat)).toLocaleString()}원
-                      </td>
-                      <td>
-                        <span className={`badge ${
-                          purchase.paymentMethod === '카드' ? 'badge-blue' : 
-                          purchase.paymentMethod === '계좌' ? 'badge-green' : 'badge-pink'
-                        }`}>
-                          {purchase.paymentMethod}
+                      <td style={{ textAlign: 'center' }}><input type="checkbox" /></td>
+                      <td style={{ fontWeight: '500' }}>
+                        <span className="link-text" onClick={() => triggerEditPurchase(purchase)}>
+                          {purchase.date ? purchase.date.replace(/-/g, '/') : ''} -{purchase.seq || 1}
                         </span>
                       </td>
+                      <td style={{ fontWeight: '600' }}>{purchase.vendor}</td>
+                      <td>{purchase.customer || '-'}</td>
+                      <td>{purchase.note || '-'}</td>
+                      <td style={{ fontSize: '12px', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={purchase.itemName}>
+                        {purchase.itemName}
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-pink)' }}>
+                        {(Number(purchase.supplyValue || 0) + Number(purchase.vat || 0)).toLocaleString()}원
+                      </td>
+                      <td>{purchase.employee || '양유지'}</td>
+                      <td style={{ textAlign: 'center' }}>-</td>
                     </tr>
-                  ))
-                )}
+                  ));
+                })()}
               </tbody>
             </table>
           </div>
@@ -1439,8 +1508,8 @@ export default function Inventory({
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h2 className="panel-title">신규 구매 등록</h2>
-              <button className="modal-close" onClick={() => setShowPurchaseModal(false)}>&times;</button>
+              <h2 className="panel-title">{editingPurchase ? '구매 전표 수정' : '신규 구매 등록'}</h2>
+              <button className="modal-close" onClick={() => { setShowPurchaseModal(false); setEditingPurchase(null); }}>&times;</button>
             </div>
             <form onSubmit={handlePurchaseSubmit}>
               <div className="modal-body">
@@ -1456,6 +1525,20 @@ export default function Inventory({
                     />
                   </div>
                   <div className="form-group">
+                    <label className="form-label">일자-No. 순번</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      required
+                      min="1"
+                      value={purchaseForm.seq}
+                      onChange={(e) => setPurchaseForm(prev => ({ ...prev, seq: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid">
+                  <div className="form-group">
                     <label className="form-label">매입처 선택 *</label>
                     <select 
                       className="form-control"
@@ -1470,6 +1553,38 @@ export default function Inventory({
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">납품처1</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="예: 중앙대 강기운"
+                      value={purchaseForm.customer}
+                      onChange={(e) => setPurchaseForm(prev => ({ ...prev, customer: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label className="form-label">사양</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="예: Q-671600"
+                      value={purchaseForm.note}
+                      onChange={(e) => setPurchaseForm(prev => ({ ...prev, note: e.target.value }))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">사원(담당)명</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      value={purchaseForm.employee}
+                      onChange={(e) => setPurchaseForm(prev => ({ ...prev, employee: e.target.value }))}
+                    />
                   </div>
                 </div>
 
@@ -1598,8 +1713,8 @@ export default function Inventory({
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowPurchaseModal(false)}>취소</button>
-                <button type="submit" className="btn btn-primary">구매 저장 및 입고</button>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowPurchaseModal(false); setEditingPurchase(null); }}>취소</button>
+                <button type="submit" className="btn btn-primary">{editingPurchase ? '수정 완료' : '구매 저장 및 입고'}</button>
               </div>
             </form>
           </div>

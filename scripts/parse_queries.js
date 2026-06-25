@@ -145,6 +145,7 @@ for (let i = 2; i < purchasesLines.length; i++) {
   purchasesList.push({
     id: `PC-${purchasesList.length + 1718000001}`,
     date,
+    seq,
     vendor,
     itemCode: '',
     itemName,

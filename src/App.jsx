@@ -3,7 +3,7 @@ import Inventory from './components/Inventory';
 import Accounting from './components/Accounting';
 
 // --- DATABASE VERSION FOR SEED RESET ---
-const DB_VERSION = '11';
+const DB_VERSION = '12';
 
 import initialPartners from './data/partners.json';
 import initialItems from './data/items.json';
