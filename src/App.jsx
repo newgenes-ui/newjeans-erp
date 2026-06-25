@@ -146,7 +146,13 @@ export default function App() {
 
   const [employees, setEmployees] = useState(() => {
     const local = localStorage.getItem('nj_employees');
-    if (local) return JSON.parse(local);
+    if (local) {
+      const parsed = JSON.parse(local);
+      const hasMockEmployees = parsed.some(e => ['최성욱', '민지', '하니'].includes(e.name));
+      if (!hasMockEmployees && parsed.length === 3) {
+        return parsed;
+      }
+    }
     return [
       { id: 'EMP-001', name: '김기환', position: '대표이사', baseSalary: 3351500, pension: 150817, health: 118643, employment: 30163, insurancesTotal: 351500, isAutoInsurance: false, netPay: 3000000, cardUsage: 2154320 },
       { id: 'EMP-002', name: '나혜원', position: '팀원 (디자인)', baseSalary: 2296810, pension: 103356, health: 81307, employment: 20671, insurancesTotal: 296810, isAutoInsurance: false, netPay: 2000000, cardUsage: 1763730 },
