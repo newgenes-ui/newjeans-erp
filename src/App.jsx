@@ -4,7 +4,7 @@ import Accounting from './components/Accounting';
 import FixedExpenses from './components/FixedExpenses';
 
 // --- DATABASE VERSION FOR SEED RESET ---
-const DB_VERSION = '20';
+const DB_VERSION = '21';
 
 import initialPartners from './data/partners.json';
 import initialItems from './data/items.json';
@@ -148,14 +148,9 @@ export default function App() {
     const local = localStorage.getItem('nj_employees');
     if (local) return JSON.parse(local);
     return [
-      { id: 'EMP-001', name: '최성욱', position: '실장 (매니지먼트)', baseSalary: 6500000, pension: 292500, health: 230100, employment: 58500, netPay: 5918900, cardUsage: 1250000 },
-      { id: 'EMP-002', name: '김주연', position: '주임 (콘텐츠제작)', baseSalary: 3800000, pension: 171000, health: 134520, employment: 34200, netPay: 3460280, cardUsage: 450000 },
-      { id: 'EMP-003', name: '양유지', position: '팀원 (경영지원)', baseSalary: 3200000, pension: 144000, health: 113280, employment: 28800, netPay: 2913920, cardUsage: 180000 },
-      { id: 'EMP-004', name: '민지', position: '아티스트', baseSalary: 12000000, pension: 540000, health: 424800, employment: 108000, netPay: 10927200, cardUsage: 2500000 },
-      { id: 'EMP-005', name: '하니', position: '아티스트', baseSalary: 12000000, pension: 540000, health: 424800, employment: 108000, netPay: 10927200, cardUsage: 2100000 },
-      { id: 'EMP-006', name: '다니엘', position: '아티스트', baseSalary: 12000000, pension: 540000, health: 424800, employment: 108000, netPay: 10927200, cardUsage: 1900000 },
-      { id: 'EMP-007', name: '해린', position: '아티스트', baseSalary: 12000000, pension: 540000, health: 424800, employment: 108000, netPay: 10927200, cardUsage: 3200000 },
-      { id: 'EMP-008', name: '혜인', position: '아티스트', baseSalary: 12000000, pension: 540000, health: 424800, employment: 108000, netPay: 10927200, cardUsage: 1500000 }
+      { id: 'EMP-001', name: '김기환', position: '대표이사', baseSalary: 3351500, pension: 150817, health: 118643, employment: 30163, insurancesTotal: 351500, isAutoInsurance: false, netPay: 3000000, cardUsage: 2154320 },
+      { id: 'EMP-002', name: '나혜원', position: '팀원 (디자인)', baseSalary: 2296810, pension: 103356, health: 81307, employment: 20671, insurancesTotal: 296810, isAutoInsurance: false, netPay: 2000000, cardUsage: 1763730 },
+      { id: 'EMP-003', name: '양유지', position: '팀원 (경영지원)', baseSalary: 2833340, pension: 127500, health: 100300, employment: 25499, insurancesTotal: 155760, isAutoInsurance: false, netPay: 2677580, cardUsage: 339640 }
     ];
   });
 
