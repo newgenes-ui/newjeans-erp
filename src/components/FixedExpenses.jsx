@@ -1216,16 +1216,17 @@ export default function FixedExpenses({
                   className="btn btn-primary"
                   onClick={() => {
                     setEditingOffice(null);
+                    const latest = officeExpenses.length > 0 ? officeExpenses[0] : {};
                     setOfficeForm({
                       month: new Date().toISOString().substring(0, 7),
-                      officeTax: 0,
-                      officePhone: 0,
-                      avanteRental: 0,
-                      rayInstallment: 0,
-                      smallBizLoanInterest: 0,
-                      ibkLoanInterest: 0,
-                      kiboLoanInterest: 0,
-                      creditLoanInterest: 0
+                      officeTax: latest.officeTax || 0,
+                      officePhone: latest.officePhone || 0,
+                      avanteRental: latest.avanteRental || 0,
+                      rayInstallment: latest.rayInstallment || 0,
+                      smallBizLoanInterest: latest.smallBizLoanInterest || 0,
+                      ibkLoanInterest: latest.ibkLoanInterest || 0,
+                      kiboLoanInterest: latest.kiboLoanInterest || 0,
+                      creditLoanInterest: latest.creditLoanInterest || 0
                     });
                     setShowOfficeModal(true);
                   }}
@@ -1342,18 +1343,19 @@ export default function FixedExpenses({
                   className="btn btn-primary"
                   onClick={() => {
                     setEditingPartner(null);
+                    const latest = officeExpenses.length > 0 ? officeExpenses[0] : {};
                     setPartnerForm({
                       month: new Date().toISOString().substring(0, 7),
-                      samsungOA: 0,
-                      sungjin: 0,
-                      gwangmyeongG: 0,
-                      taxService: 0,
-                      taxCorp: 0,
-                      ecount: 0,
-                      bsTech: 0,
-                      chungho: 0,
-                      kt: 0,
-                      skt: 0
+                      samsungOA: latest.samsungOA || 0,
+                      sungjin: latest.sungjin || 0,
+                      gwangmyeongG: latest.gwangmyeongG || 0,
+                      taxService: latest.taxService || 0,
+                      taxCorp: latest.taxCorp || 0,
+                      ecount: latest.ecount || 0,
+                      bsTech: latest.bsTech || 0,
+                      chungho: latest.chungho || 0,
+                      kt: latest.kt || 0,
+                      skt: latest.skt || 0
                     });
                     setShowPartnerModal(true);
                   }}
