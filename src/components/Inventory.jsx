@@ -39,6 +39,7 @@ export default function Inventory({
   // Sales Period Filter states
   const [salesPeriodType, setSalesPeriodType] = useState('all'); // 'month', 'quarter', 'all'
   const [selectedSalesPeriod, setSelectedSalesPeriod] = useState('all'); // 'all', YYYY-MM, or YYYY-Q#
+  const [salesPaymentFilter, setSalesPaymentFilter] = useState('all'); // 'all', 'card' (카드매출), 'cash' (일반매출)
 
   // Purchase Period Filter states
   const [purchasePeriodType, setPurchasePeriodType] = useState('all'); // 'month', 'quarter', 'all'
@@ -489,13 +490,21 @@ export default function Inventory({
       .filter(sale => {
         if (!sale.date) return false;
         if (type === 'month') {
-          return sale.date.substring(0, 7) === period;
+          if (sale.date.substring(0, 7) !== period) return false;
         } else if (type === 'quarter') {
           const year = sale.date.substring(0, 4);
           const monthNum = parseInt(sale.date.substring(5, 7), 10);
           const q = Math.ceil(monthNum / 3);
-          return `${year}-Q${q}` === period;
+          if (`${year}-Q${q}` !== period) return false;
         }
+
+        // Apply payment method filter
+        if (salesPaymentFilter === 'card') {
+          if (!(sale.paymentMethod || '').toLowerCase().includes('카드')) return false;
+        } else if (salesPaymentFilter === 'cash') {
+          if ((sale.paymentMethod || '').toLowerCase().includes('카드')) return false;
+        }
+
         return true;
       })
       .reduce((sum, sale) => sum + (Number(sale.supplyValue || 0) + Number(sale.vat || 0)), 0);
@@ -605,7 +614,14 @@ export default function Inventory({
         if (`${year}-Q${q}` !== selectedSalesPeriod) return false;
       }
 
-      // 2. Search query filter
+      // 2. Card sales payment filter
+      if (salesPaymentFilter === 'card') {
+        if (!(sale.paymentMethod || '').toLowerCase().includes('카드')) return false;
+      } else if (salesPaymentFilter === 'cash') {
+        if ((sale.paymentMethod || '').toLowerCase().includes('카드')) return false;
+      }
+
+      // 3. Search query filter
       return (
         (sale.customer || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
         (sale.partnerCode || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
@@ -616,7 +632,7 @@ export default function Inventory({
         (sale.date || '').toLowerCase().includes(salesSearchQuery.toLowerCase())
       );
     });
-  }, [sales, salesSearchQuery, salesPeriodType, selectedSalesPeriod]);
+  }, [sales, salesSearchQuery, salesPeriodType, selectedSalesPeriod, salesPaymentFilter]);
 
   const salesTotalSum = useMemo(() => {
     return filteredSales.reduce((sum, sale) => sum + (Number(sale.supplyValue || 0) + Number(sale.vat || 0)), 0);
@@ -1104,6 +1120,21 @@ export default function Inventory({
                   )}
                 </select>
               )}
+            </div>
+
+            {/* Payment Method Filter Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>결제 방식:</span>
+              <select 
+                className="form-control"
+                style={{ width: '120px', padding: '6px 12px', fontSize: '13px' }}
+                value={salesPaymentFilter}
+                onChange={(e) => setSalesPaymentFilter(e.target.value)}
+              >
+                <option value="all">전체 매출</option>
+                <option value="card">카드 매출</option>
+                <option value="cash">일반 매출</option>
+              </select>
             </div>
 
             {/* Total summary widget */}
