@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import initialPartners from '../data/partners.json';
 import initialItems from '../data/items.json';
 import initialSales from '../data/sales.json';
@@ -35,6 +35,14 @@ export default function Inventory({
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
   const [salesSearchQuery, setSalesSearchQuery] = useState('');
   const [purchaseSearchQuery, setPurchaseSearchQuery] = useState('');
+
+  // Sales Period Filter states
+  const [salesPeriodType, setSalesPeriodType] = useState('all'); // 'month', 'quarter', 'all'
+  const [selectedSalesPeriod, setSelectedSalesPeriod] = useState('all'); // 'all', YYYY-MM, or YYYY-Q#
+
+  // Purchase Period Filter states
+  const [purchasePeriodType, setPurchasePeriodType] = useState('all'); // 'month', 'quarter', 'all'
+  const [selectedPurchasePeriod, setSelectedPurchasePeriod] = useState('all'); // 'all', YYYY-MM, or YYYY-Q#
 
   // Searchable select states for item selection
   const [salesItemSearchText, setSalesItemSearchText] = useState('');
@@ -452,6 +460,198 @@ export default function Inventory({
     });
   };
 
+  // Available periods for Sales
+  const getAvailableSalesMonths = () => {
+    const months = new Set();
+    sales.forEach(s => {
+      if (s.date) {
+        months.add(s.date.substring(0, 7));
+      }
+    });
+    return Array.from(months).sort((a, b) => b.localeCompare(a));
+  };
+
+  const getAvailableSalesQuarters = () => {
+    const quarters = new Set();
+    sales.forEach(s => {
+      if (s.date) {
+        const year = s.date.substring(0, 4);
+        const monthNum = parseInt(s.date.substring(5, 7), 10);
+        const q = Math.ceil(monthNum / 3);
+        quarters.add(`${year}-Q${q}`);
+      }
+    });
+    return Array.from(quarters).sort((a, b) => b.localeCompare(a));
+  };
+
+  const calculateSalesTotalForPeriod = (type, period) => {
+    return sales
+      .filter(sale => {
+        if (!sale.date) return false;
+        if (type === 'month') {
+          return sale.date.substring(0, 7) === period;
+        } else if (type === 'quarter') {
+          const year = sale.date.substring(0, 4);
+          const monthNum = parseInt(sale.date.substring(5, 7), 10);
+          const q = Math.ceil(monthNum / 3);
+          return `${year}-Q${q}` === period;
+        }
+        return true;
+      })
+      .reduce((sum, sale) => sum + (Number(sale.supplyValue || 0) + Number(sale.vat || 0)), 0);
+  };
+
+  // Available periods for Purchase
+  const getAvailablePurchaseMonths = () => {
+    const months = new Set();
+    purchases.forEach(p => {
+      if (p.date) {
+        months.add(p.date.substring(0, 7));
+      }
+    });
+    return Array.from(months).sort((a, b) => b.localeCompare(a));
+  };
+
+  const getAvailablePurchaseQuarters = () => {
+    const quarters = new Set();
+    purchases.forEach(p => {
+      if (p.date) {
+        const year = p.date.substring(0, 4);
+        const monthNum = parseInt(p.date.substring(5, 7), 10);
+        const q = Math.ceil(monthNum / 3);
+        quarters.add(`${year}-Q${q}`);
+      }
+    });
+    return Array.from(quarters).sort((a, b) => b.localeCompare(a));
+  };
+
+  const calculatePurchaseTotalForPeriod = (type, period) => {
+    return purchases
+      .filter(p => {
+        if (!p.date) return false;
+        if (type === 'month') {
+          return p.date.substring(0, 7) === period;
+        } else if (type === 'quarter') {
+          const year = p.date.substring(0, 4);
+          const monthNum = parseInt(p.date.substring(5, 7), 10);
+          const q = Math.ceil(monthNum / 3);
+          return `${year}-Q${q}` === period;
+        }
+        return true;
+      })
+      .reduce((sum, p) => sum + (Number(p.supplyValue || 0) + Number(p.vat || 0)), 0);
+  };
+
+  // Auto adjustment effects
+  useEffect(() => {
+    if (salesPeriodType === 'all') {
+      setSelectedSalesPeriod('all');
+    } else if (salesPeriodType === 'month') {
+      const months = getAvailableSalesMonths();
+      if (months.length > 0) {
+        if (!months.includes(selectedSalesPeriod)) {
+          setSelectedSalesPeriod(months[0]);
+        }
+      } else {
+        setSelectedSalesPeriod('');
+      }
+    } else if (salesPeriodType === 'quarter') {
+      const quarters = getAvailableSalesQuarters();
+      if (quarters.length > 0) {
+        if (!quarters.includes(selectedSalesPeriod)) {
+          setSelectedSalesPeriod(quarters[0]);
+        }
+      } else {
+        setSelectedSalesPeriod('');
+      }
+    }
+  }, [salesPeriodType, sales]);
+
+  useEffect(() => {
+    if (purchasePeriodType === 'all') {
+      setSelectedPurchasePeriod('all');
+    } else if (purchasePeriodType === 'month') {
+      const months = getAvailablePurchaseMonths();
+      if (months.length > 0) {
+        if (!months.includes(selectedPurchasePeriod)) {
+          setSelectedPurchasePeriod(months[0]);
+        }
+      } else {
+        setSelectedPurchasePeriod('');
+      }
+    } else if (purchasePeriodType === 'quarter') {
+      const quarters = getAvailablePurchaseQuarters();
+      if (quarters.length > 0) {
+        if (!quarters.includes(selectedPurchasePeriod)) {
+          setSelectedPurchasePeriod(quarters[0]);
+        }
+      } else {
+        setSelectedPurchasePeriod('');
+      }
+    }
+  }, [purchasePeriodType, purchases]);
+
+  // useMemo for filtered sales and purchase lists
+  const filteredSales = useMemo(() => {
+    return sales.filter(sale => {
+      // 1. Period filter
+      if (salesPeriodType === 'month') {
+        if (!sale.date || sale.date.substring(0, 7) !== selectedSalesPeriod) return false;
+      } else if (salesPeriodType === 'quarter') {
+        if (!sale.date) return false;
+        const year = sale.date.substring(0, 4);
+        const monthNum = parseInt(sale.date.substring(5, 7), 10);
+        const q = Math.ceil(monthNum / 3);
+        if (`${year}-Q${q}` !== selectedSalesPeriod) return false;
+      }
+
+      // 2. Search query filter
+      return (
+        (sale.customer || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
+        (sale.partnerCode || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
+        (sale.itemName || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
+        (sale.employee || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
+        (sale.note || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
+        (sale.paymentMethod || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
+        (sale.date || '').toLowerCase().includes(salesSearchQuery.toLowerCase())
+      );
+    });
+  }, [sales, salesSearchQuery, salesPeriodType, selectedSalesPeriod]);
+
+  const salesTotalSum = useMemo(() => {
+    return filteredSales.reduce((sum, sale) => sum + (Number(sale.supplyValue || 0) + Number(sale.vat || 0)), 0);
+  }, [filteredSales]);
+
+  const filteredPurchases = useMemo(() => {
+    return purchases.filter(purchase => {
+      // 1. Period filter
+      if (purchasePeriodType === 'month') {
+        if (!purchase.date || purchase.date.substring(0, 7) !== selectedPurchasePeriod) return false;
+      } else if (purchasePeriodType === 'quarter') {
+        if (!purchase.date) return false;
+        const year = purchase.date.substring(0, 4);
+        const monthNum = parseInt(purchase.date.substring(5, 7), 10);
+        const q = Math.ceil(monthNum / 3);
+        if (`${year}-Q${q}` !== selectedPurchasePeriod) return false;
+      }
+
+      // 2. Search query filter
+      return (
+        (purchase.vendor || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
+        (purchase.customer || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
+        (purchase.itemName || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
+        (purchase.employee || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
+        (purchase.note || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
+        (purchase.paymentMethod || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
+        (purchase.date || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase())
+      );
+    });
+  }, [purchases, purchaseSearchQuery, purchasePeriodType, selectedPurchasePeriod]);
+
+  const purchaseTotalSum = useMemo(() => {
+    return filteredPurchases.reduce((sum, purchase) => sum + (Number(purchase.supplyValue || 0) + Number(purchase.vat || 0)), 0);
+  }, [filteredPurchases]);
+
   // Filters & Sorting for Items
   const sortedItems = [...items].filter(item => 
     (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -832,6 +1032,91 @@ export default function Inventory({
             </div>
           </div>
 
+          {/* Period Filter Bar */}
+          <div className="period-filter-bar" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '20px', padding: '12px 16px', backgroundColor: 'var(--card-bg-secondary, #f8fafc)', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>조회 기간:</span>
+              <div className="btn-group" style={{ display: 'inline-flex', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                <button 
+                  type="button"
+                  className={`btn ${salesPeriodType === 'month' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ borderRadius: '0px', padding: '6px 16px', fontSize: '13px', margin: '0px' }}
+                  onClick={() => setSalesPeriodType('month')}
+                >
+                  월별
+                </button>
+                <button 
+                  type="button"
+                  className={`btn ${salesPeriodType === 'quarter' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ borderRadius: '0px', padding: '6px 16px', fontSize: '13px', margin: '0px' }}
+                  onClick={() => setSalesPeriodType('quarter')}
+                >
+                  분기별
+                </button>
+                <button 
+                  type="button"
+                  className={`btn ${salesPeriodType === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ borderRadius: '0px', padding: '6px 16px', fontSize: '13px', margin: '0px' }}
+                  onClick={() => setSalesPeriodType('all')}
+                >
+                  전체
+                </button>
+              </div>
+
+              {salesPeriodType !== 'all' && (
+                <select 
+                  className="form-control"
+                  style={{ minWidth: '220px', width: 'auto', padding: '6px 12px', fontSize: '13px' }}
+                  value={selectedSalesPeriod}
+                  onChange={(e) => setSelectedSalesPeriod(e.target.value)}
+                >
+                  {salesPeriodType === 'month' ? (
+                    getAvailableSalesMonths().length === 0 ? (
+                      <option value="">데이터 없음</option>
+                    ) : (
+                      getAvailableSalesMonths().map(m => {
+                        const year = m.split('-')[0];
+                        const month = parseInt(m.split('-')[1], 10);
+                        const total = calculateSalesTotalForPeriod('month', m);
+                        return (
+                          <option key={m} value={m}>
+                            {year}년 {month}월 (총합계: {total.toLocaleString()}원)
+                          </option>
+                        );
+                      })
+                    )
+                  ) : (
+                    getAvailableSalesQuarters().length === 0 ? (
+                      <option value="">데이터 없음</option>
+                    ) : (
+                      getAvailableSalesQuarters().map(q => {
+                        const year = q.split('-Q')[0];
+                        const quarter = q.split('-Q')[1];
+                        const monthsText = quarter === '1' ? '1월~3월' : quarter === '2' ? '4월~6월' : quarter === '3' ? '7월~9월' : '10월~12월';
+                        const total = calculateSalesTotalForPeriod('quarter', q);
+                        return (
+                          <option key={q} value={q}>
+                            {year}년 {quarter}분기 ({monthsText}) (총합계: {total.toLocaleString()}원)
+                          </option>
+                        );
+                      })
+                    )
+                  )}
+                </select>
+              )}
+            </div>
+
+            {/* Total summary widget */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                선택된 거래 건수: <strong style={{ color: 'var(--text-primary)' }}>{filteredSales.length}건</strong>
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: '600' }}>
+                선택 기간 총 금액합계: <span style={{ color: 'var(--primary-blue)', fontSize: '16px', fontWeight: '700' }}>{salesTotalSum.toLocaleString()}원</span>
+              </div>
+            </div>
+          </div>
+
           <div className="table-responsive">
             <table className="erp-table">
               <thead>
@@ -853,26 +1138,14 @@ export default function Inventory({
                 </tr>
               </thead>
               <tbody>
-                {(() => {
-                  const filteredSales = sales.filter(sale => 
-                    (sale.customer || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
-                    (sale.partnerCode || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
-                    (sale.itemName || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
-                    (sale.employee || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
-                    (sale.note || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
-                    (sale.paymentMethod || '').toLowerCase().includes(salesSearchQuery.toLowerCase()) ||
-                    (sale.date || '').toLowerCase().includes(salesSearchQuery.toLowerCase())
-                  );
-                  if (filteredSales.length === 0) {
-                    return (
-                      <tr>
-                        <td colSpan="14" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
-                          검색 결과 또는 등록된 판매 거래 내역이 없습니다.
-                        </td>
-                      </tr>
-                    );
-                  }
-                  return filteredSales.map(sale => (
+                {filteredSales.length === 0 ? (
+                  <tr>
+                    <td colSpan="14" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                      검색 결과 또는 등록된 판매 거래 내역이 없습니다.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredSales.map(sale => (
                     <tr key={sale.id}>
                       <td style={{ textAlign: 'center' }}><input type="checkbox" /></td>
                       <td style={{ fontWeight: '500', whiteSpace: 'nowrap' }}>
@@ -905,8 +1178,8 @@ export default function Inventory({
                         </button>
                       </td>
                     </tr>
-                  ));
-                })()}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -955,6 +1228,91 @@ export default function Inventory({
             </div>
           </div>
 
+          {/* Period Filter Bar */}
+          <div className="period-filter-bar" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '20px', padding: '12px 16px', backgroundColor: 'var(--card-bg-secondary, #f8fafc)', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>조회 기간:</span>
+              <div className="btn-group" style={{ display: 'inline-flex', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                <button 
+                  type="button"
+                  className={`btn ${purchasePeriodType === 'month' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ borderRadius: '0px', padding: '6px 16px', fontSize: '13px', margin: '0px' }}
+                  onClick={() => setPurchasePeriodType('month')}
+                >
+                  월별
+                </button>
+                <button 
+                  type="button"
+                  className={`btn ${purchasePeriodType === 'quarter' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ borderRadius: '0px', padding: '6px 16px', fontSize: '13px', margin: '0px' }}
+                  onClick={() => setPurchasePeriodType('quarter')}
+                >
+                  분기별
+                </button>
+                <button 
+                  type="button"
+                  className={`btn ${purchasePeriodType === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ borderRadius: '0px', padding: '6px 16px', fontSize: '13px', margin: '0px' }}
+                  onClick={() => setPurchasePeriodType('all')}
+                >
+                  전체
+                </button>
+              </div>
+
+              {purchasePeriodType !== 'all' && (
+                <select 
+                  className="form-control"
+                  style={{ minWidth: '220px', width: 'auto', padding: '6px 12px', fontSize: '13px' }}
+                  value={selectedPurchasePeriod}
+                  onChange={(e) => setSelectedPurchasePeriod(e.target.value)}
+                >
+                  {purchasePeriodType === 'month' ? (
+                    getAvailablePurchaseMonths().length === 0 ? (
+                      <option value="">데이터 없음</option>
+                    ) : (
+                      getAvailablePurchaseMonths().map(m => {
+                        const year = m.split('-')[0];
+                        const month = parseInt(m.split('-')[1], 10);
+                        const total = calculatePurchaseTotalForPeriod('month', m);
+                        return (
+                          <option key={m} value={m}>
+                            {year}년 {month}월 (총합계: {total.toLocaleString()}원)
+                          </option>
+                        );
+                      })
+                    )
+                  ) : (
+                    getAvailablePurchaseQuarters().length === 0 ? (
+                      <option value="">데이터 없음</option>
+                    ) : (
+                      getAvailablePurchaseQuarters().map(q => {
+                        const year = q.split('-Q')[0];
+                        const quarter = q.split('-Q')[1];
+                        const monthsText = quarter === '1' ? '1월~3월' : quarter === '2' ? '4월~6월' : quarter === '3' ? '7월~9월' : '10월~12월';
+                        const total = calculatePurchaseTotalForPeriod('quarter', q);
+                        return (
+                          <option key={q} value={q}>
+                            {year}년 {quarter}분기 ({monthsText}) (총합계: {total.toLocaleString()}원)
+                          </option>
+                        );
+                      })
+                    )
+                  )}
+                </select>
+              )}
+            </div>
+
+            {/* Total summary widget */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                선택된 거래 건수: <strong style={{ color: 'var(--text-primary)' }}>{filteredPurchases.length}건</strong>
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: '600' }}>
+                선택 기간 총 금액합계: <span style={{ color: 'var(--primary-pink, #be123c)', fontSize: '16px', fontWeight: '700' }}>{purchaseTotalSum.toLocaleString()}원</span>
+              </div>
+            </div>
+          </div>
+
           <div className="table-responsive">
             <table className="erp-table">
               <thead>
@@ -971,26 +1329,14 @@ export default function Inventory({
                 </tr>
               </thead>
               <tbody>
-                {(() => {
-                  const filteredPurchases = purchases.filter(purchase => 
-                    (purchase.vendor || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
-                    (purchase.customer || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
-                    (purchase.itemName || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
-                    (purchase.employee || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
-                    (purchase.note || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
-                    (purchase.paymentMethod || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase()) ||
-                    (purchase.date || '').toLowerCase().includes(purchaseSearchQuery.toLowerCase())
-                  );
-                  if (filteredPurchases.length === 0) {
-                    return (
-                      <tr>
-                        <td colSpan="9" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
-                          검색 결과 또는 등록된 구매 거래 내역이 없습니다.
-                        </td>
-                      </tr>
-                    );
-                  }
-                  return filteredPurchases.map(purchase => (
+                {filteredPurchases.length === 0 ? (
+                  <tr>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                      검색 결과 또는 등록된 구매 거래 내역이 없습니다.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredPurchases.map(purchase => (
                     <tr key={purchase.id}>
                       <td style={{ textAlign: 'center' }}><input type="checkbox" /></td>
                       <td style={{ fontWeight: '500', whiteSpace: 'nowrap' }}>
@@ -1004,14 +1350,14 @@ export default function Inventory({
                       <td style={{ fontSize: '12px', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={purchase.itemName}>
                         {purchase.itemName}
                       </td>
-                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-pink)', whiteSpace: 'nowrap' }}>
+                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-pink, #be123c)', whiteSpace: 'nowrap' }}>
                         {(Number(purchase.supplyValue || 0) + Number(purchase.vat || 0)).toLocaleString()}
                       </td>
                       <td>{purchase.employee || '양유지'}</td>
                       <td style={{ textAlign: 'center' }}>-</td>
                     </tr>
-                  ));
-                })()}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
