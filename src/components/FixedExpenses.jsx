@@ -785,7 +785,7 @@ export default function FixedExpenses({
     const monthNum = parseInt(selectedPeriod.split('-')[1], 10);
     filteredEmployees = employees.filter(e => e.month === monthNum);
     filteredOffice = officeExpenses.filter(o => o.month === selectedPeriod);
-  } else {
+  } else if (viewPeriodType === 'quarter') {
     // Quarter
     const quarterNum = parseInt(selectedPeriod.split('-Q')[1], 10);
     let monthsInQuarter = [];
@@ -805,7 +805,60 @@ export default function FixedExpenses({
     }
     filteredEmployees = employees.filter(e => monthsInQuarter.includes(e.month));
     filteredOffice = officeExpenses.filter(o => officeMonthsInQuarter.includes(o.month));
+  } else {
+    // viewPeriodType === 'all'
+    filteredEmployees = employees;
+    filteredOffice = officeExpenses;
   }
+
+  // Calculate total fixed expenses for a given period to display in the filter options
+  const calculateTotalForPeriod = (periodType, periodValue) => {
+    let targetEmployees = [];
+    let targetOffice = [];
+
+    if (periodType === 'month') {
+      const monthNum = parseInt(periodValue.split('-')[1], 10);
+      targetEmployees = employees.filter(e => e.month === monthNum);
+      targetOffice = officeExpenses.filter(o => o.month === periodValue);
+    } else if (periodType === 'quarter') {
+      const quarterNum = parseInt(periodValue.split('-Q')[1], 10);
+      let monthsInQuarter = [];
+      let officeMonthsInQuarter = [];
+      if (quarterNum === 1) {
+        monthsInQuarter = [1, 2, 3];
+        officeMonthsInQuarter = ['2026-01', '2026-02', '2026-03'];
+      } else if (quarterNum === 2) {
+        monthsInQuarter = [4, 5, 6];
+        officeMonthsInQuarter = ['2026-04', '2026-05', '2026-06'];
+      } else if (quarterNum === 3) {
+        monthsInQuarter = [7, 8, 9];
+        officeMonthsInQuarter = ['2026-07', '2026-08', '2026-09'];
+      } else {
+        monthsInQuarter = [10, 11, 12];
+        officeMonthsInQuarter = ['2026-10', '2026-11', '2026-12'];
+      }
+      targetEmployees = employees.filter(e => monthsInQuarter.includes(e.month));
+      targetOffice = officeExpenses.filter(o => officeMonthsInQuarter.includes(o.month));
+    } else {
+      // 'all'
+      targetEmployees = employees;
+      targetOffice = officeExpenses;
+    }
+
+    const personnel = targetEmployees.reduce((sum, emp) => sum + emp.baseSalary + (emp.insurancesTotal || 0) + (emp.cardUsage || 0), 0);
+    
+    const office = targetOffice.reduce((sum, o) => {
+      const tab2Manual = (o.officeTax || 0) + (o.officePhone || 0) + (o.avanteRental || 0) + (o.rayInstallment || 0);
+      const tab3NonDup = (o.bsTech || 0) + (o.gwangmyeongG || 0) + (o.samsungOA || 0) + (o.chungho || 0) + (o.sungjin || 0) + (o.ecount || 0);
+      return sum + tab2Manual + tab3NonDup;
+    }, 0);
+
+    const interest = targetOffice.reduce((sum, o) => {
+      return sum + (o.smallBizLoanInterest || 0) + (o.ibkLoanInterest || 0) + (o.kiboLoanInterest || 0) + (o.creditLoanInterest || 0);
+    }, 0);
+
+    return personnel + office + interest;
+  };
 
   // Card 2: 직원 총 인건비 지출 (직원별 고정 지출관리의 개인합계들의 총합)
   const totalPersonnelCost = filteredEmployees.reduce((sum, emp) => sum + emp.baseSalary + (emp.insurancesTotal || 0) + (emp.cardUsage || 0), 0);
@@ -856,6 +909,16 @@ export default function FixedExpenses({
             >
               분기별
             </button>
+            <button 
+              className={`btn ${viewPeriodType === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ borderRadius: '0px', padding: '6px 16px', fontSize: '13px', margin: '0px' }}
+              onClick={() => {
+                setViewPeriodType('all');
+                setSelectedPeriod('all');
+              }}
+            >
+              전체
+            </button>
           </div>
         </div>
 
@@ -863,29 +926,36 @@ export default function FixedExpenses({
           <label style={{ fontSize: '13px', fontWeight: '500' }}>선택:</label>
           <select 
             className="form-control"
-            style={{ width: '220px', padding: '6px 12px', fontSize: '13px' }}
+            style={{ minWidth: '220px', width: 'auto', padding: '6px 12px', fontSize: '13px' }}
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
+            disabled={viewPeriodType === 'all'}
           >
             {viewPeriodType === 'month' ? (
               getAvailableMonths().map(m => {
                 const year = m.split('-')[0];
                 const month = parseInt(m.split('-')[1], 10);
+                const total = calculateTotalForPeriod('month', m);
                 return (
                   <option key={m} value={m}>
-                    {year}년 {month}월
+                    {year}년 {month}월 (총합계: {total.toLocaleString()}원)
+                  </option>
+                );
+              })
+            ) : viewPeriodType === 'quarter' ? (
+              [
+                { value: '2026-Q2', label: '2026년 2분기 (4월~6월)' },
+                { value: '2026-Q1', label: '2026년 1분기 (1월~3월)' }
+              ].map(q => {
+                const total = calculateTotalForPeriod('quarter', q.value);
+                return (
+                  <option key={q.value} value={q.value}>
+                    {q.label} (총합계: {total.toLocaleString()}원)
                   </option>
                 );
               })
             ) : (
-              [
-                { value: '2026-Q2', label: '2026년 2분기 (4월~6월)' },
-                { value: '2026-Q1', label: '2026년 1분기 (1월~3월)' }
-              ].map(q => (
-                <option key={q.value} value={q.value}>
-                  {q.label}
-                </option>
-              ))
+              <option value="all">전체 기간 (총합계: {calculateTotalForPeriod('all', 'all').toLocaleString()}원)</option>
             )}
           </select>
         </div>
@@ -896,7 +966,7 @@ export default function FixedExpenses({
         
         <div className="kpi-card" style={{ borderLeft: '4px solid var(--primary-blue, #1a56db)' }}>
           <div className="kpi-header">
-            <span className="kpi-title">{viewPeriodType === 'month' ? '선택월' : '선택분기'} 총 고정 지출 (인건비+사무실+이자)</span>
+            <span className="kpi-title">{viewPeriodType === 'month' ? '선택월' : viewPeriodType === 'quarter' ? '선택분기' : '전체 기간'} 총 고정 지출 (인건비+사무실+이자)</span>
             <span className="kpi-icon">💸</span>
           </div>
           <div className="kpi-value">{totalFixedExpenses.toLocaleString()}</div>
@@ -905,7 +975,7 @@ export default function FixedExpenses({
 
         <div className="kpi-card">
           <div className="kpi-header">
-            <span className="kpi-title">{viewPeriodType === 'month' ? '선택월' : '선택분기'} 직원 총 인건비 지출</span>
+            <span className="kpi-title">{viewPeriodType === 'month' ? '선택월' : viewPeriodType === 'quarter' ? '선택분기' : '전체 기간'} 직원 총 인건비 지출</span>
             <span className="kpi-icon">👥</span>
           </div>
           <div className="kpi-value">{totalPersonnelCost.toLocaleString()}</div>
@@ -914,7 +984,7 @@ export default function FixedExpenses({
 
         <div className="kpi-card">
           <div className="kpi-header">
-            <span className="kpi-title">사무실 {viewPeriodType === 'month' ? '월' : '분기'} 고정 지출</span>
+            <span className="kpi-title">사무실 {viewPeriodType === 'month' ? '월' : viewPeriodType === 'quarter' ? '분기' : '전체'} 고정 지출</span>
             <span className="kpi-icon">🏢</span>
           </div>
           <div className="kpi-value">{totalOfficeCost.toLocaleString()}</div>
@@ -923,7 +993,7 @@ export default function FixedExpenses({
 
         <div className="kpi-card" style={{ borderLeft: '4px solid #f59e0b' }}>
           <div className="kpi-header">
-            <span className="kpi-title">{viewPeriodType === 'month' ? '월' : '분기'} 총 금융 대출 이자비용</span>
+            <span className="kpi-title">{viewPeriodType === 'month' ? '월' : viewPeriodType === 'quarter' ? '분기' : '전체'} 총 금융 대출 이자비용</span>
             <span className="kpi-icon">📈</span>
           </div>
           <div className="kpi-value">{totalInterestCost.toLocaleString()}</div>
