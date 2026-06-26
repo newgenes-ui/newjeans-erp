@@ -762,7 +762,7 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {chartData.map((d, idx) => {
+                        {[...chartData].reverse().map((d, idx) => {
                           const profit = d.value;
                           const salesVal = d.sales;
                           const purchasesVal = d.purchases;
