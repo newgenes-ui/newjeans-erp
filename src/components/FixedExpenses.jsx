@@ -15,6 +15,19 @@ export default function FixedExpenses({
 }) {
   const [fixedTab, setFixedTab] = useState('employee'); // 'employee', 'office', 'partner'
   
+  // Period filter states
+  const [viewPeriodType, setViewPeriodType] = useState('month'); // 'month', 'quarter'
+  const [selectedPeriod, setSelectedPeriod] = useState('2026-06'); // default to 2026-06
+
+  const getAvailableMonths = () => {
+    const months = new Set();
+    officeExpenses.forEach(o => months.add(o.month));
+    employees.forEach(e => {
+      months.add(`2026-${e.month.toString().padStart(2, '0')}`);
+    });
+    return Array.from(months).sort((a, b) => b.localeCompare(a));
+  };
+
   // Employee Modal States
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
@@ -764,71 +777,156 @@ export default function FixedExpenses({
   const totalEmployeesCard = employees.reduce((acc, curr) => acc + (curr.cardUsage || 0), 0);
   const totalEmployeesNetPay = employees.reduce((acc, curr) => acc + curr.netPay, 0);
 
-  const latestOfficeRecord = officeExpenses[0] || {
-    tax: 0, corporatePhone: 0, officeRent: 0, maintenance: 0, equipmentRental: 0, erpServiceFee: 0,
-    officeTax: 0, officePhone: 0,
-    avanteRental: 0, rayInstallment: 0, smallBizLoanInterest: 0, ibkLoanInterest: 0, kiboLoanInterest: 0, creditLoanInterest: 0
-  };
+  // Filter data sets based on selected period
+  let filteredEmployees = [];
+  let filteredOffice = [];
 
-  const officeMonthlySum = 
-    (latestOfficeRecord.officeRent || 0) +
-    (latestOfficeRecord.maintenance || 0) +
-    (latestOfficeRecord.equipmentRental || 0) +
-    (latestOfficeRecord.erpServiceFee || 0) +
-    (latestOfficeRecord.officeTax || 0) +
-    (latestOfficeRecord.officePhone || 0) +
-    (latestOfficeRecord.avanteRental || 0) + 
-    (latestOfficeRecord.rayInstallment || 0) + 
-    (latestOfficeRecord.smallBizLoanInterest || 0) + 
-    (latestOfficeRecord.ibkLoanInterest || 0) + 
-    (latestOfficeRecord.kiboLoanInterest || 0) + 
-    (latestOfficeRecord.creditLoanInterest || 0);
+  if (viewPeriodType === 'month') {
+    const monthNum = parseInt(selectedPeriod.split('-')[1], 10);
+    filteredEmployees = employees.filter(e => e.month === monthNum);
+    filteredOffice = officeExpenses.filter(o => o.month === selectedPeriod);
+  } else {
+    // Quarter
+    const quarterNum = parseInt(selectedPeriod.split('-Q')[1], 10);
+    let monthsInQuarter = [];
+    let officeMonthsInQuarter = [];
+    if (quarterNum === 1) {
+      monthsInQuarter = [1, 2, 3];
+      officeMonthsInQuarter = ['2026-01', '2026-02', '2026-03'];
+    } else if (quarterNum === 2) {
+      monthsInQuarter = [4, 5, 6];
+      officeMonthsInQuarter = ['2026-04', '2026-05', '2026-06'];
+    } else if (quarterNum === 3) {
+      monthsInQuarter = [7, 8, 9];
+      officeMonthsInQuarter = ['2026-07', '2026-08', '2026-09'];
+    } else {
+      monthsInQuarter = [10, 11, 12];
+      officeMonthsInQuarter = ['2026-10', '2026-11', '2026-12'];
+    }
+    filteredEmployees = employees.filter(e => monthsInQuarter.includes(e.month));
+    filteredOffice = officeExpenses.filter(o => officeMonthsInQuarter.includes(o.month));
+  }
 
-  const officeLoansSum = 
-    (latestOfficeRecord.smallBizLoanInterest || 0) + 
-    (latestOfficeRecord.ibkLoanInterest || 0) + 
-    (latestOfficeRecord.kiboLoanInterest || 0) + 
-    (latestOfficeRecord.creditLoanInterest || 0);
+  // Card 2: 직원 총 인건비 지출 (직원별 고정 지출관리의 개인합계들의 총합)
+  const totalPersonnelCost = filteredEmployees.reduce((sum, emp) => sum + emp.baseSalary + (emp.insurancesTotal || 0) + (emp.cardUsage || 0), 0);
+
+  // Card 3: 사무실 고정 지출 (세금, 법인폰, 렌탈비, 관리비, 임대료 등 중복 제거 합산)
+  const totalOfficeCost = filteredOffice.reduce((sum, o) => {
+    const tab2Manual = (o.officeTax || 0) + (o.officePhone || 0) + (o.avanteRental || 0) + (o.rayInstallment || 0);
+    const tab3NonDup = (o.bsTech || 0) + (o.gwangmyeongG || 0) + (o.samsungOA || 0) + (o.chungho || 0) + (o.sungjin || 0) + (o.ecount || 0);
+    return sum + tab2Manual + tab3NonDup;
+  }, 0);
+
+  // Card 4: 총 금융 대출 이자비용
+  const totalInterestCost = filteredOffice.reduce((sum, o) => {
+    return sum + (o.smallBizLoanInterest || 0) + (o.ibkLoanInterest || 0) + (o.kiboLoanInterest || 0) + (o.creditLoanInterest || 0);
+  }, 0);
+
+  // Card 1: 총 고정 지출 (인건비 + 사무실)
+  const totalFixedExpenses = totalPersonnelCost + totalOfficeCost;
 
   return (
     <div className="content-area">
       
+      {/* Period Filter Bar */}
+      <div className="panel-card" style={{ padding: '16px 20px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>📅 조회 기간 필터</span>
+          <div className="btn-group" style={{ gap: '0px', border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden', padding: '0px' }}>
+            <button 
+              className={`btn ${viewPeriodType === 'month' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ borderRadius: '0px', padding: '6px 16px', fontSize: '13px', margin: '0px' }}
+              onClick={() => {
+                setViewPeriodType('month');
+                const months = getAvailableMonths();
+                if (months.length > 0) {
+                  setSelectedPeriod(months[0]);
+                }
+              }}
+            >
+              월별
+            </button>
+            <button 
+              className={`btn ${viewPeriodType === 'quarter' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ borderRadius: '0px', padding: '6px 16px', fontSize: '13px', margin: '0px' }}
+              onClick={() => {
+                setViewPeriodType('quarter');
+                setSelectedPeriod('2026-Q2');
+              }}
+            >
+              분기별
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <label style={{ fontSize: '13px', fontWeight: '500' }}>선택:</label>
+          <select 
+            className="form-control"
+            style={{ width: '220px', padding: '6px 12px', fontSize: '13px' }}
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+          >
+            {viewPeriodType === 'month' ? (
+              getAvailableMonths().map(m => {
+                const year = m.split('-')[0];
+                const month = parseInt(m.split('-')[1], 10);
+                return (
+                  <option key={m} value={m}>
+                    {year}년 {month}월
+                  </option>
+                );
+              })
+            ) : (
+              [
+                { value: '2026-Q2', label: '2026년 2분기 (4월~6월)' },
+                { value: '2026-Q1', label: '2026년 1분기 (1월~3월)' }
+              ].map(q => (
+                <option key={q.value} value={q.value}>
+                  {q.label}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+      </div>
+
       {/* KPI summaries */}
       <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', marginBottom: '24px' }}>
         
         <div className="kpi-card" style={{ borderLeft: '4px solid var(--primary-blue, #1a56db)' }}>
           <div className="kpi-header">
-            <span className="kpi-title">이번달 총 고정 지출 (인건비+사무실)</span>
+            <span className="kpi-title">{viewPeriodType === 'month' ? '선택월' : '선택분기'} 총 고정 지출 (인건비+사무실)</span>
             <span className="kpi-icon">💸</span>
           </div>
-          <div className="kpi-value">{(totalEmployeesSalary + officeMonthlySum).toLocaleString()}</div>
-          <div className="kpi-subtext">직원 급여 총합 + 직전 등록 월 사무실 고정비</div>
+          <div className="kpi-value">{totalFixedExpenses.toLocaleString()}</div>
+          <div className="kpi-subtext">직원 지출 합계 + 사무실 고정 지출</div>
         </div>
 
         <div className="kpi-card">
           <div className="kpi-header">
-            <span className="kpi-title">직원 총 인건비 지출</span>
+            <span className="kpi-title">{viewPeriodType === 'month' ? '선택월' : '선택분기'} 직원 총 인건비 지출</span>
             <span className="kpi-icon">👥</span>
           </div>
-          <div className="kpi-value">{totalEmployeesSalary.toLocaleString()}</div>
-          <div className="kpi-subtext">직원 {employees.length}명 기본급 총합</div>
+          <div className="kpi-value">{totalPersonnelCost.toLocaleString()}</div>
+          <div className="kpi-subtext">급여 + 4대보험 + 법인카드 합계</div>
         </div>
 
         <div className="kpi-card">
           <div className="kpi-header">
-            <span className="kpi-title">사무실 월 고정 지출 ({latestOfficeRecord.month || '내역 없음'})</span>
+            <span className="kpi-title">사무실 {viewPeriodType === 'month' ? '월' : '분기'} 고정 지출</span>
             <span className="kpi-icon">🏢</span>
           </div>
-          <div className="kpi-value">{officeMonthlySum.toLocaleString()}</div>
-          <div className="kpi-subtext">세금, 통신비, 렌탈, 대출이자 등 총계</div>
+          <div className="kpi-value">{totalOfficeCost.toLocaleString()}</div>
+          <div className="kpi-subtext">세금, 법인폰, 렌탈비 + 거래처 고정비</div>
         </div>
 
         <div className="kpi-card" style={{ borderLeft: '4px solid #f59e0b' }}>
           <div className="kpi-header">
-            <span className="kpi-title">월 총 금융 대출 이자비용</span>
+            <span className="kpi-title">{viewPeriodType === 'month' ? '월' : '분기'} 총 금융 대출 이자비용</span>
             <span className="kpi-icon">📈</span>
           </div>
-          <div className="kpi-value">{officeLoansSum.toLocaleString()}</div>
+          <div className="kpi-value">{totalInterestCost.toLocaleString()}</div>
           <div className="kpi-subtext">소상공인, 기업은행, 기보, 신용대출 이자 합산</div>
         </div>
 
