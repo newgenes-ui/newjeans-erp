@@ -374,7 +374,7 @@ export default function App() {
   const [systemLogs, setSystemLogs] = useState(() => {
     const local = localStorage.getItem('nj_system_logs');
     return local ? JSON.parse(local) : [
-      { id: 1, type: '시스템', time: '10:05:00', text: 'NJ-ERP 데스크톱 데이터베이스 초기 구축 완료.' },
+      { id: 1, type: '시스템', time: '10:05:00', text: 'NGS-ERP 데스크톱 데이터베이스 초기 구축 완료.' },
       { id: 2, type: '재고', time: '10:05:10', text: '초기 굿즈 및 원재료 기초등록 로드 완료.' },
       { id: 3, type: '시스템', time: '10:27:00', text: '판매등록 메뉴 그리드 이미지 스펙(사원 양유지 외 13개 열) 패치 완료.' }
     ];
@@ -549,7 +549,7 @@ export default function App() {
         <div className="logo-container">
           <div className="logo-icon">🐰</div>
           <div>
-            <div className="logo-text">NJ-ERP</div>
+            <div className="logo-text">NGS-ERP</div>
             <div style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: '500' }}>For ADOR & Bunnies</div>
           </div>
         </div>
@@ -606,7 +606,7 @@ export default function App() {
             </div>
           </div>
           <div style={{ textAlign: 'center', fontSize: '10px', color: 'var(--text-muted)' }}>
-            NJ-ERP v1.2.0 • 2026 ADOR
+            NGS-ERP v1.2.0 • 2026 ADOR
           </div>
         </div>
       </aside>
