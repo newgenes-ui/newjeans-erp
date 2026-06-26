@@ -731,23 +731,18 @@ export default function FixedExpenses({
       ];
       newEmps = defaults.map(d => {
         const base = d.baseSalary;
-        const pension = Math.round(base * 0.045);
-        const health = Math.round(base * 0.0354);
-        const employment = Math.round(base * 0.009);
-        const insurancesTotal = Math.round(base * 0.0894);
-        const netPay = base - insurancesTotal;
         return {
           id: `EMP-${targetMonth}-${d.name}-${Date.now().toString().slice(-4)}-${Math.random().toString().slice(-4)}`,
           month: targetMonth,
           name: d.name,
           position: d.position,
           baseSalary: base,
-          pension,
-          health,
-          employment,
-          insurancesTotal,
-          isAutoInsurance: true,
-          netPay,
+          pension: 0,
+          health: 0,
+          employment: 0,
+          insurancesTotal: 0,
+          isAutoInsurance: false,
+          netPay: base,
           cardUsage: 0
         };
       });
@@ -1598,7 +1593,7 @@ export default function FixedExpenses({
                   {monthlyForm.copyOption === 'latest' ? (
                     <span>💡 기존에 등록된 가장 최근 월의 직원 명단, 직급, 급여, 4대보험 정보를 복사합니다. (법인카드 사용액은 0원으로 초기화됩니다.)</span>
                   ) : (
-                    <span>💡 김기환(대표이사), 나혜원(부장), 양유지(매니저)의 기본 급여 정보로 직원을 일괄 생성하며, 4대보험는 자동으로 계산되어 등록됩니다.</span>
+                    <span>💡 김기환(대표이사), 나혜원(부장), 양유지(매니저)의 기본 급여 정보로 직원을 일괄 생성합니다. (4대보험은 0원으로 초기화되어 수동 입력하도록 세팅됩니다.)</span>
                   )}
                 </div>
 
