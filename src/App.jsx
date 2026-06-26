@@ -491,10 +491,10 @@ export default function App() {
     return months.map((m, idx) => {
       const monthSales = sales
         .filter(s => s.date.split('-')[1] === m)
-        .reduce((acc, curr) => acc + curr.supplyValue, 0);
+        .reduce((acc, curr) => acc + Number(curr.supplyValue || 0) + Number(curr.vat || 0), 0);
       const monthPurchases = purchases
         .filter(p => p.date.split('-')[1] === m)
-        .reduce((acc, curr) => acc + curr.supplyValue, 0);
+        .reduce((acc, curr) => acc + Number(curr.supplyValue || 0) + Number(curr.vat || 0), 0);
       return { 
         label: monthNames[idx], 
         sales: monthSales,
@@ -511,26 +511,26 @@ export default function App() {
         const m = s.date.split('-')[1];
         return m === '01' || m === '02' || m === '03';
       })
-      .reduce((acc, curr) => acc + curr.supplyValue, 0);
+      .reduce((acc, curr) => acc + Number(curr.supplyValue || 0) + Number(curr.vat || 0), 0);
     const q1Purchases = purchases
       .filter(p => {
         const m = p.date.split('-')[1];
         return m === '01' || m === '02' || m === '03';
       })
-      .reduce((acc, curr) => acc + curr.supplyValue, 0);
+      .reduce((acc, curr) => acc + Number(curr.supplyValue || 0) + Number(curr.vat || 0), 0);
 
     const q2Sales = sales
       .filter(s => {
         const m = s.date.split('-')[1];
         return m === '04' || m === '05' || m === '06';
       })
-      .reduce((acc, curr) => acc + curr.supplyValue, 0);
+      .reduce((acc, curr) => acc + Number(curr.supplyValue || 0) + Number(curr.vat || 0), 0);
     const q2Purchases = purchases
       .filter(p => {
         const m = p.date.split('-')[1];
         return m === '04' || m === '05' || m === '06';
       })
-      .reduce((acc, curr) => acc + curr.supplyValue, 0);
+      .reduce((acc, curr) => acc + Number(curr.supplyValue || 0) + Number(curr.vat || 0), 0);
 
     return [
       { label: '1분기 (Q1)', sales: q1Sales, purchases: q1Purchases, value: q1Sales - q1Purchases },
