@@ -822,8 +822,8 @@ export default function FixedExpenses({
     return sum + (o.smallBizLoanInterest || 0) + (o.ibkLoanInterest || 0) + (o.kiboLoanInterest || 0) + (o.creditLoanInterest || 0);
   }, 0);
 
-  // Card 1: 총 고정 지출 (인건비 + 사무실)
-  const totalFixedExpenses = totalPersonnelCost + totalOfficeCost;
+  // Card 1: 총 고정 지출 (인건비 + 사무실 + 이자비용)
+  const totalFixedExpenses = totalPersonnelCost + totalOfficeCost + totalInterestCost;
 
   return (
     <div className="content-area">
@@ -896,11 +896,11 @@ export default function FixedExpenses({
         
         <div className="kpi-card" style={{ borderLeft: '4px solid var(--primary-blue, #1a56db)' }}>
           <div className="kpi-header">
-            <span className="kpi-title">{viewPeriodType === 'month' ? '선택월' : '선택분기'} 총 고정 지출 (인건비+사무실)</span>
+            <span className="kpi-title">{viewPeriodType === 'month' ? '선택월' : '선택분기'} 총 고정 지출 (인건비+사무실+이자)</span>
             <span className="kpi-icon">💸</span>
           </div>
           <div className="kpi-value">{totalFixedExpenses.toLocaleString()}</div>
-          <div className="kpi-subtext">직원 지출 합계 + 사무실 고정 지출</div>
+          <div className="kpi-subtext">인건비 + 사무실 고정비 + 이자비용 합산</div>
         </div>
 
         <div className="kpi-card">
