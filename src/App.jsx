@@ -4,7 +4,7 @@ import Accounting from './components/Accounting';
 import FixedExpenses from './components/FixedExpenses';
 
 // --- DATABASE VERSION FOR SEED RESET ---
-const DB_VERSION = '22';
+const DB_VERSION = '23';
 
 import initialPartners from './data/partners.json';
 import initialItems from './data/items.json';
@@ -157,24 +157,24 @@ export default function App() {
     return [
       // Month 5
       { id: 'EMP-5-001', month: 5, name: '김기환', position: '대표이사', baseSalary: 3351500, insurancesTotal: 351500, cardUsage: 2154320 },
-      { id: 'EMP-5-002', month: 5, name: '나혜원', position: '팀원 (디자인)', baseSalary: 2296810, insurancesTotal: 296810, cardUsage: 1763730 },
-      { id: 'EMP-5-003', month: 5, name: '양유지', position: '팀원 (경영지원)', baseSalary: 2833340, insurancesTotal: 155760, cardUsage: 339640 },
+      { id: 'EMP-5-002', month: 5, name: '나혜원', position: '부장', baseSalary: 2296810, insurancesTotal: 296810, cardUsage: 1763730 },
+      { id: 'EMP-5-003', month: 5, name: '양유지', position: '매니저', baseSalary: 2833340, insurancesTotal: 155760, cardUsage: 339640 },
       // Month 4
       { id: 'EMP-4-001', month: 4, name: '김기환', position: '대표이사', baseSalary: 3341560, insurancesTotal: 349600, cardUsage: 1122250 },
-      { id: 'EMP-4-002', month: 4, name: '나혜원', position: '팀원 (디자인)', baseSalary: 2255700, insurancesTotal: 451520, cardUsage: 1002360 },
-      { id: 'EMP-4-003', month: 4, name: '양유지', position: '팀원 (경영지원)', baseSalary: 2833340, insurancesTotal: 57760, cardUsage: 419800 },
+      { id: 'EMP-4-002', month: 4, name: '나혜원', position: '부장', baseSalary: 2255700, insurancesTotal: 451520, cardUsage: 1002360 },
+      { id: 'EMP-4-003', month: 4, name: '양유지', position: '매니저', baseSalary: 2833340, insurancesTotal: 57760, cardUsage: 419800 },
       // Month 3
       { id: 'EMP-3-001', month: 3, name: '김기환', position: '대표이사', baseSalary: 3341560, insurancesTotal: 246190, cardUsage: 1591770 },
-      { id: 'EMP-3-002', month: 3, name: '나혜원', position: '팀원 (디자인)', baseSalary: 2255700, insurancesTotal: 220400, cardUsage: 1058950 },
-      { id: 'EMP-3-003', month: 3, name: '양유지', position: '팀원 (경영지원)', baseSalary: 2833340, insurancesTotal: 125640, cardUsage: 234420 },
+      { id: 'EMP-3-002', month: 3, name: '나혜원', position: '부장', baseSalary: 2255700, insurancesTotal: 220400, cardUsage: 1058950 },
+      { id: 'EMP-3-003', month: 3, name: '양유지', position: '매니저', baseSalary: 2833340, insurancesTotal: 125640, cardUsage: 234420 },
       // Month 2
       { id: 'EMP-2-001', month: 2, name: '김기환', position: '대표이사', baseSalary: 3341560, insurancesTotal: 246190, cardUsage: 1783050 },
-      { id: 'EMP-2-002', month: 2, name: '나혜원', position: '팀원 (디자인)', baseSalary: 2255700, insurancesTotal: 220400, cardUsage: 1692600 },
-      { id: 'EMP-2-003', month: 2, name: '양유지', position: '팀원 (경영지원)', baseSalary: 2833340, insurancesTotal: 125640, cardUsage: 307300 },
+      { id: 'EMP-2-002', month: 2, name: '나혜원', position: '부장', baseSalary: 2255700, insurancesTotal: 220400, cardUsage: 1692600 },
+      { id: 'EMP-2-003', month: 2, name: '양유지', position: '매니저', baseSalary: 2833340, insurancesTotal: 125640, cardUsage: 307300 },
       // Month 1
       { id: 'EMP-1-001', month: 1, name: '김기환', position: '대표이사', baseSalary: 3341560, insurancesTotal: 246190, cardUsage: 2245720 },
-      { id: 'EMP-1-002', month: 1, name: '나혜원', position: '팀원 (디자인)', baseSalary: 2255700, insurancesTotal: 220400, cardUsage: 487300 },
-      { id: 'EMP-1-003', month: 1, name: '양유지', position: '팀원 (경영지원)', baseSalary: 2833340, insurancesTotal: 125640, cardUsage: 346300 }
+      { id: 'EMP-1-002', month: 1, name: '나혜원', position: '부장', baseSalary: 2255700, insurancesTotal: 220400, cardUsage: 487300 },
+      { id: 'EMP-1-003', month: 1, name: '양유지', position: '매니저', baseSalary: 2833340, insurancesTotal: 125640, cardUsage: 346300 }
     ];
   });
 

@@ -79,6 +79,11 @@ export default function FixedExpenses({
     copyOption: 'latest' // 'latest', 'default'
   });
 
+  // Monthly Edit Modal States
+  const [showMonthlyEditModal, setShowMonthlyEditModal] = useState(false);
+  const [editingMonth, setEditingMonth] = useState(null);
+  const [monthlyEmployeesForm, setMonthlyEmployeesForm] = useState([]);
+
   // --- CSV PARSING & IMPORT LOGIC ---
   const parseCSV = (text) => {
     const lines = [];
@@ -388,8 +393,8 @@ export default function FixedExpenses({
 
           let empPosition = '사원';
           if (empName === '김기환') empPosition = '대표이사';
-          else if (empName === '나혜원') empPosition = '팀원 (디자인)';
-          else if (empName === '양유지') empPosition = '팀원 (경영지원)';
+          else if (empName === '나혜원') empPosition = '부장';
+          else if (empName === '양유지') empPosition = '매니저';
 
           const salaryVal = row[salaryIdx].trim().replace(/,/g, '');
           const baseSalary = parseInt(salaryVal, 10) || 0;
@@ -528,6 +533,118 @@ export default function FixedExpenses({
       setEmployees(prev => prev.filter(e => e.id !== id));
       logActivity('급여', `고정지출: 직원 정보 삭제 (${target ? target.name : id})`);
     }
+  };
+
+  const triggerEditMonth = (month) => {
+    const emps = employees.filter(e => e.month === month);
+    setMonthlyEmployeesForm(emps.map(e => ({
+      id: e.id,
+      month: e.month,
+      name: e.name,
+      position: e.position,
+      baseSalary: e.baseSalary,
+      isAutoInsurance: e.isAutoInsurance !== undefined ? e.isAutoInsurance : true,
+      insurancesTotal: e.insurancesTotal || 0,
+      cardUsage: e.cardUsage || 0
+    })));
+    setEditingMonth(month);
+    setShowMonthlyEditModal(true);
+  };
+
+  const handleDeleteMonth = (month) => {
+    if (confirm(`정말로 2026년 ${month}월의 모든 직원 지출 데이터를 삭제하시겠습니까?`)) {
+      setEmployees(prev => prev.filter(e => e.month !== month));
+      logActivity('급여', `고정지출: ${month}월 직원 정보 일괄 삭제`);
+    }
+  };
+
+  const handleMonthlyEmpChange = (index, field, value) => {
+    setMonthlyEmployeesForm(prev => prev.map((emp, i) => {
+      if (i !== index) return emp;
+      const updated = { ...emp, [field]: value };
+      if (field === 'baseSalary') {
+        const base = Number(value) || 0;
+        updated.baseSalary = base;
+        if (updated.isAutoInsurance) {
+          updated.insurancesTotal = Math.round(base * 0.0894);
+        }
+      } else if (field === 'insurancesTotal') {
+        updated.insurancesTotal = Number(value) || 0;
+      } else if (field === 'cardUsage') {
+        updated.cardUsage = Number(value) || 0;
+      }
+      return updated;
+    }));
+  };
+
+  const handleMonthlyEmpAutoInsuranceToggle = (index, checked) => {
+    setMonthlyEmployeesForm(prev => prev.map((emp, i) => {
+      if (i !== index) return emp;
+      const base = emp.baseSalary;
+      const ins = checked ? Math.round(base * 0.0894) : emp.insurancesTotal;
+      return {
+        ...emp,
+        isAutoInsurance: checked,
+        insurancesTotal: ins
+      };
+    }));
+  };
+
+  const handleAddEmployeeToMonthlyForm = () => {
+    setMonthlyEmployeesForm(prev => [
+      ...prev,
+      {
+        id: 'EMP-TEMP-' + Date.now() + '-' + Math.random().toString().slice(-4),
+        month: editingMonth,
+        name: '',
+        position: '',
+        baseSalary: 0,
+        isAutoInsurance: true,
+        insurancesTotal: 0,
+        cardUsage: 0
+      }
+    ]);
+  };
+
+  const handleMonthlyEditSubmit = (e) => {
+    e.preventDefault();
+    for (const emp of monthlyEmployeesForm) {
+      if (!emp.name || !emp.position || emp.baseSalary < 0) {
+        alert('필수 정보를 올바르게 입력해 주세요.');
+        return;
+      }
+    }
+
+    setEmployees(prev => {
+      const otherMonthsEmps = prev.filter(emp => emp.month !== editingMonth);
+      const updatedEmps = monthlyEmployeesForm.map(emp => {
+        const base = Number(emp.baseSalary);
+        const ins = Number(emp.insurancesTotal);
+        const card = Number(emp.cardUsage);
+        const netPay = base - ins;
+        const pension = Math.round(base * 0.045);
+        const health = Math.round(base * 0.0354);
+        const employment = Math.round(base * 0.009);
+        const finalId = emp.id.startsWith('EMP-TEMP-') ? 'EMP-' + Date.now() + '-' + Math.random().toString().slice(-4) : emp.id;
+
+        return {
+          ...emp,
+          id: finalId,
+          baseSalary: base,
+          pension,
+          health,
+          employment,
+          insurancesTotal: ins,
+          netPay,
+          cardUsage: card
+        };
+      });
+      return [...otherMonthsEmps, ...updatedEmps];
+    });
+
+    logActivity('급여', `고정지출: ${editingMonth}월 직원 정보 일괄 수정 완료`);
+    setShowMonthlyEditModal(false);
+    setEditingMonth(null);
   };
 
   // --- OFFICE EXPENSES HANDLERS ---
@@ -1149,36 +1266,29 @@ export default function FixedExpenses({
                                   {monthTotal.toLocaleString()}
                                 </td>
                               )}
-                              <td style={{ textAlign: 'center' }}>
-                                <div className="btn-group" style={{ justifyContent: 'center', gap: '6px' }}>
-                                  <button 
-                                    className="btn btn-secondary" 
-                                    style={{ padding: '3px 8px', fontSize: '11px' }}
-                                    onClick={() => {
-                                      setEditingEmployee(emp);
-                                      setEmployeeForm({
-                                        month: emp.month || 5,
-                                        name: emp.name,
-                                        position: emp.position,
-                                        baseSalary: emp.baseSalary,
-                                        isAutoInsurance: emp.isAutoInsurance !== undefined ? emp.isAutoInsurance : true,
-                                        insurancesTotal: emp.insurancesTotal || 0,
-                                        cardUsage: emp.cardUsage || 0
-                                      });
-                                      setShowEmployeeModal(true);
-                                    }}
-                                  >
-                                    수정
-                                  </button>
-                                  <button 
-                                    className="btn btn-danger" 
-                                    style={{ padding: '3px 8px', fontSize: '11px' }}
-                                    onClick={() => handleDeleteEmployee(emp.id)}
-                                  >
-                                    삭제
-                                  </button>
-                                </div>
-                              </td>
+                              {index === 0 && (
+                                <td 
+                                  rowSpan={monthEmps.length} 
+                                  style={{ textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#f9fafb', borderLeft: '1px solid var(--border-color)' }}
+                                >
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                                    <button 
+                                      className="btn btn-secondary" 
+                                      style={{ padding: '6px 12px', fontSize: '12px' }}
+                                      onClick={() => triggerEditMonth(month)}
+                                    >
+                                      수정
+                                    </button>
+                                    <button 
+                                      className="btn btn-danger" 
+                                      style={{ padding: '6px 12px', fontSize: '12px' }}
+                                      onClick={() => handleDeleteMonth(month)}
+                                    >
+                                      삭제
+                                    </button>
+                                  </div>
+                                </td>
+                              )}
                             </tr>
                           );
                         });
@@ -1771,6 +1881,143 @@ export default function FixedExpenses({
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowMonthlyModal(false)}>취소</button>
                 <button type="submit" className="btn btn-primary">등록 완료</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL: 월별 직원 고정 지출 일괄 수정 모달 --- */}
+      {showMonthlyEditModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '900px', width: '95%' }}>
+            <div className="modal-header">
+              <h2 className="panel-title">2026년 {editingMonth}월 직원 고정 지출 일괄 수정/등록</h2>
+              <button className="modal-close" onClick={() => setShowMonthlyEditModal(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleMonthlyEditSubmit}>
+              <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                <table className="erp-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '12%', backgroundColor: '#e2f0d9', color: '#000' }}>성명 *</th>
+                      <th style={{ width: '18%', backgroundColor: '#e2f0d9', color: '#000' }}>직급 *</th>
+                      <th style={{ width: '20%', backgroundColor: '#e2f0d9', color: '#000' }}>급여 *</th>
+                      <th style={{ width: '22%', backgroundColor: '#e2f0d9', color: '#000' }}>4대보험 자동계산 (8.94%)</th>
+                      <th style={{ width: '15%', backgroundColor: '#e2f0d9', color: '#000' }}>4대보험료 *</th>
+                      <th style={{ width: '15%', backgroundColor: '#deebf7', color: '#000' }}>법인카드</th>
+                      <th style={{ width: '8%', textAlign: 'center' }}>삭제</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthlyEmployeesForm.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" style={{ textAlign: 'center', padding: '16px', color: 'var(--text-secondary)' }}>
+                          등록된 직원이 없습니다. '+ 직원 추가' 버튼을 눌러 직원을 등록하세요.
+                        </td>
+                      </tr>
+                    ) : (
+                      monthlyEmployeesForm.map((emp, idx) => (
+                        <tr key={emp.id}>
+                          <td>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              style={{ padding: '4px 8px', fontSize: '13px' }}
+                              required 
+                              value={emp.name}
+                              onChange={(e) => handleMonthlyEmpChange(idx, 'name', e.target.value)}
+                              placeholder="성명"
+                            />
+                          </td>
+                          <td>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              style={{ padding: '4px 8px', fontSize: '13px' }}
+                              required 
+                              value={emp.position}
+                              onChange={(e) => handleMonthlyEmpChange(idx, 'position', e.target.value)}
+                              placeholder="직급"
+                            />
+                          </td>
+                          <td>
+                            <input 
+                              type="number" 
+                              className="form-control" 
+                              style={{ padding: '4px 8px', fontSize: '13px' }}
+                              required 
+                              min="0"
+                              value={emp.baseSalary}
+                              onChange={(e) => handleMonthlyEmpChange(idx, 'baseSalary', e.target.value)}
+                              placeholder="급여"
+                            />
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', userSelect: 'none' }}>
+                              <input 
+                                type="checkbox" 
+                                checked={emp.isAutoInsurance}
+                                onChange={(e) => handleMonthlyEmpAutoInsuranceToggle(idx, e.target.checked)}
+                              />
+                              <span>자동계산 적용</span>
+                            </label>
+                          </td>
+                          <td>
+                            <input 
+                              type="number" 
+                              className="form-control" 
+                              style={{ padding: '4px 8px', fontSize: '13px' }}
+                              required 
+                              min="0"
+                              disabled={emp.isAutoInsurance}
+                              value={emp.insurancesTotal}
+                              onChange={(e) => handleMonthlyEmpChange(idx, 'insurancesTotal', e.target.value)}
+                              placeholder="보험료"
+                            />
+                          </td>
+                          <td>
+                            <input 
+                              type="number" 
+                              className="form-control" 
+                              style={{ padding: '4px 8px', fontSize: '13px' }}
+                              min="0"
+                              value={emp.cardUsage}
+                              onChange={(e) => handleMonthlyEmpChange(idx, 'cardUsage', e.target.value)}
+                              placeholder="카드사용액"
+                            />
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button 
+                              type="button" 
+                              className="btn btn-danger" 
+                              style={{ padding: '2px 6px', fontSize: '11px' }}
+                              onClick={() => {
+                                setMonthlyEmployeesForm(prev => prev.filter((_, i) => i !== idx));
+                              }}
+                            >
+                              삭제
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+                <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-start' }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={handleAddEmployeeToMonthlyForm}
+                    style={{ fontSize: '12px', padding: '6px 12px' }}
+                  >
+                    + 직원 추가
+                  </button>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowMonthlyEditModal(false)}>취소</button>
+                <button type="submit" className="btn btn-primary">수정 완료</button>
               </div>
             </form>
           </div>
