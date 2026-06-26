@@ -5,6 +5,12 @@
     <link rel="icon" type="image/svg+xml" href="/newjeans-erp/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NGS-ERP | NewJeans ERP</title>
+    <!-- PWA Meta Tags & Icons -->
+    <link rel="manifest" href="/newjeans-erp/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="NGS-ERP" />
+    <link rel="apple-touch-icon" href="/newjeans-erp/logo.png" />
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,5 +20,15 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+            .catch(err => console.log('Service Worker registration failed:', err));
+        });
+      }
+    </script>
   </body>
 </html>
