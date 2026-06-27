@@ -23,8 +23,9 @@ export default function Accounting({
   employees = [],
   setEmployees
 }) {
-  const [activeSubTab, setActiveSubTab] = useState('sync'); // 'sync', 'tax'
+  const [activeSubTab, setActiveSubTab] = useState('sync'); // 'sync', 'tax', 'vat'
   const [syncSubTab, setSyncSubTab] = useState('bank'); // 'bank', 'cardsales', 'cardpurchase'
+  const [vatPeriod, setVatPeriod] = useState('2026-Q2'); // '2026-Q1', '2026-Q2', '2026-Q3', '2026-Q4'
 
   // Simulated Loading States
   const [isSyncing, setIsSyncing] = useState(false);
@@ -126,7 +127,8 @@ export default function Accounting({
       price: supplyValue,
       supplyValue: supplyValue,
       vat: vat,
-      paymentMethod: type === 'sales' ? (tx.cardCorp ? '카드' : '계좌') : (tx.cardCorp ? '카드' : '계좌')
+      paymentMethod: type === 'sales' ? (tx.cardCorp ? '카드' : '계좌') : (tx.cardCorp ? '카드' : '계좌'),
+      isDeductible: 'true'
     });
     
     setShowJournalModal(true);
@@ -199,7 +201,8 @@ export default function Accounting({
         price: Number(journalForm.price),
         supplyValue: Number(journalForm.supplyValue),
         vat: Number(journalForm.vat),
-        paymentMethod: journalForm.paymentMethod
+        paymentMethod: journalForm.paymentMethod,
+        isDeductible: journalForm.isDeductible === 'true'
       };
       setPurchases(prev => [newPurchase, ...prev]);
 
@@ -270,7 +273,41 @@ export default function Accounting({
     setShowInvoiceModal(true);
   };
 
+  // --- VAT CALCULATIONS ---
+  const getMonthsForQuarter = (quarter) => {
+    if (quarter === '2026-Q1') return ['01', '02', '03'];
+    if (quarter === '2026-Q2') return ['04', '05', '06'];
+    if (quarter === '2026-Q3') return ['07', '08', '09'];
+    return ['10', '11', '12'];
+  };
 
+  const currentMonths = getMonthsForQuarter(vatPeriod);
+
+  const quarterSales = sales.filter(s => {
+    if (!s.date) return false;
+    const m = s.date.substring(5, 7);
+    return s.date.startsWith('2026') && currentMonths.includes(m);
+  });
+
+  const quarterPurchases = purchases.filter(p => {
+    if (!p.date) return false;
+    const m = p.date.substring(5, 7);
+    return p.date.startsWith('2026') && currentMonths.includes(m);
+  });
+
+  const deductiblePurchases = quarterPurchases.filter(p => p.isDeductible !== false);
+  const nonDeductiblePurchases = quarterPurchases.filter(p => p.isDeductible === false);
+
+  const totalSalesSupply = quarterSales.reduce((sum, s) => sum + (Number(s.supplyValue) || 0), 0);
+  const totalSalesVat = quarterSales.reduce((sum, s) => sum + (Number(s.vat) || 0), 0);
+
+  const totalDeductibleSupply = deductiblePurchases.reduce((sum, p) => sum + (Number(p.supplyValue) || 0), 0);
+  const totalDeductibleVat = deductiblePurchases.reduce((sum, p) => sum + (Number(p.vat) || 0), 0);
+
+  const totalNonDeductibleSupply = nonDeductiblePurchases.reduce((sum, p) => sum + (Number(p.supplyValue) || 0), 0);
+  const totalNonDeductibleVat = nonDeductiblePurchases.reduce((sum, p) => sum + (Number(p.vat) || 0), 0);
+
+  const expectedNetVat = totalSalesVat - totalDeductibleVat;
 
   return (
     <div className="content-area">
@@ -292,6 +329,12 @@ export default function Accounting({
           onClick={() => setActiveSubTab('tax')}
         >
           전자세금계산서 관리
+        </button>
+        <button 
+          className={`tab-btn ${activeSubTab === 'vat' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('vat')}
+        >
+          부가세 신고 조회 (VAT)
         </button>
       </div>
 
@@ -932,6 +975,20 @@ export default function Accounting({
                     <option value="외상">외상 거래</option>
                   </select>
                 </div>
+
+                {txType === 'purchase' && (
+                  <div className="form-group" style={{ marginTop: '12px' }}>
+                    <label className="form-label">매입세액 공제 여부 *</label>
+                    <select 
+                      className="form-control"
+                      value={journalForm.isDeductible}
+                      onChange={(e) => setJournalForm(prev => ({ ...prev, isDeductible: e.target.value }))}
+                    >
+                      <option value="true">공제 대상 (사무용품, 소모품, 비품, 광고비 등)</option>
+                      <option value="false">불공제 대상 (접대비, 면세 관련, 비영업용 승용차 등)</option>
+                    </select>
+                  </div>
+                )}
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowJournalModal(false)}>취소</button>
@@ -1259,6 +1316,201 @@ export default function Accounting({
           </div>
         );
       })()}
+
+      {/* --- SUBTAB 3: 부가세 신고 조회 --- */}
+      {activeSubTab === 'vat' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          {/* Period Filter Card */}
+          <div className="panel-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <span style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>📅 부가세 신고 분기 선택</span>
+              <div className="btn-group" style={{ gap: '0px', border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden', padding: '0px' }}>
+                {['2026-Q1', '2026-Q2', '2026-Q3', '2026-Q4'].map((q) => {
+                  const label = q.split('-Q')[1] + '분기';
+                  return (
+                    <button 
+                      key={q}
+                      className={`btn ${vatPeriod === q ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ borderRadius: '0px', padding: '6px 16px', fontSize: '13px', margin: '0px' }}
+                      onClick={() => setVatPeriod(q)}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+              신고 대상 기간: {vatPeriod === '2026-Q1' ? '2026년 01월 01일 ~ 03월 31일' :
+                              vatPeriod === '2026-Q2' ? '2026년 04월 01일 ~ 06월 30일' :
+                              vatPeriod === '2026-Q3' ? '2026년 07월 01일 ~ 09월 30일' :
+                                                        '2026년 10월 01일 ~ 12월 31일'}
+            </div>
+          </div>
+
+          {/* Summary KPI Cards */}
+          <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+            
+            <div className="kpi-card" style={{ borderLeft: '4px solid #1a56db' }}>
+              <div className="kpi-header">
+                <span className="kpi-title">매출세액 합계 (A)</span>
+                <span className="kpi-icon">📈</span>
+              </div>
+              <div className="kpi-value">{totalSalesVat.toLocaleString()}원</div>
+              <div className="kpi-subtext" style={{ fontSize: '11px' }}>
+                공급가액: {totalSalesSupply.toLocaleString()}원
+              </div>
+            </div>
+
+            <div className="kpi-card" style={{ borderLeft: '4px solid #10b981' }}>
+              <div className="kpi-header">
+                <span className="kpi-title">공제대상 매입세액 (B)</span>
+                <span className="kpi-icon">📉</span>
+              </div>
+              <div className="kpi-value" style={{ color: '#10b981' }}>{totalDeductibleVat.toLocaleString()}원</div>
+              <div className="kpi-subtext" style={{ fontSize: '11px' }}>
+                공제대상 공급액: {totalDeductibleSupply.toLocaleString()}원
+              </div>
+            </div>
+
+            <div className="kpi-card" style={{ borderLeft: `4px solid ${expectedNetVat >= 0 ? '#ef4444' : '#10b981'}` }}>
+              <div className="kpi-header">
+                <span className="kpi-title">예상 납부(환급)세액 (A - B)</span>
+                <span className="kpi-icon">💸</span>
+              </div>
+              <div className="kpi-value" style={{ color: expectedNetVat >= 0 ? '#ef4444' : '#10b981' }}>
+                {Math.abs(expectedNetVat).toLocaleString()}원 {expectedNetVat >= 0 ? '납부' : '환급예정'}
+              </div>
+              <div className="kpi-subtext" style={{ fontSize: '11px' }}>
+                최종 부가세 신고 납부 예상 금액
+              </div>
+            </div>
+
+            <div className="kpi-card" style={{ borderLeft: '4px solid #6b7280' }}>
+              <div className="kpi-header">
+                <span className="kpi-title">불공제 매입세액</span>
+                <span className="kpi-icon">🚫</span>
+              </div>
+              <div className="kpi-value" style={{ color: '#6b7280' }}>{totalNonDeductibleVat.toLocaleString()}원</div>
+              <div className="kpi-subtext" style={{ fontSize: '11px' }}>
+                불공제 공급액: {totalNonDeductibleSupply.toLocaleString()}원
+              </div>
+            </div>
+
+          </div>
+
+          {/* Details Tables Container */}
+          <div className="panel-card" style={{ padding: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
+              
+              {/* Output VAT Detail Table */}
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>🔵 매출세액 세부 내역 (Output VAT)</span>
+                  <span style={{ fontSize: '12px', fontWeight: 'normal', color: 'var(--text-secondary)' }}>(총 {quarterSales.length}건)</span>
+                </h3>
+                <div className="table-responsive">
+                  <table className="erp-table">
+                    <thead>
+                      <tr>
+                        <th>일자</th>
+                        <th>전표번호</th>
+                        <th>거래처</th>
+                        <th>품목명</th>
+                        <th style={{ textAlign: 'right' }}>공급가액</th>
+                        <th style={{ textAlign: 'right' }}>부가세</th>
+                        <th style={{ textAlign: 'right' }}>합계금액</th>
+                        <th>결제구분</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {quarterSales.length === 0 ? (
+                        <tr>
+                          <td colSpan="8" style={{ textAlign: 'center', padding: '16px', color: 'var(--text-secondary)' }}>
+                            해당 분기에 등록된 매출 내역이 없습니다.
+                          </td>
+                        </tr>
+                      ) : (
+                        quarterSales.map((s) => (
+                          <tr key={s.id}>
+                            <td>{s.date}</td>
+                            <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{s.id}</td>
+                            <td style={{ fontWeight: '500' }}>{s.customer}</td>
+                            <td>{s.itemName}</td>
+                            <td style={{ textAlign: 'right' }}>{s.supplyValue.toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '600' }}>{s.vat.toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{(s.supplyValue + s.vat).toLocaleString()}</td>
+                            <td>{s.paymentMethod}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Input VAT Detail Table */}
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>🟢 매입세액 세부 내역 (Input VAT)</span>
+                  <span style={{ fontSize: '12px', fontWeight: 'normal', color: 'var(--text-secondary)' }}>(총 {quarterPurchases.length}건)</span>
+                </h3>
+                <div className="table-responsive">
+                  <table className="erp-table">
+                    <thead>
+                      <tr>
+                        <th>일자</th>
+                        <th>전표번호</th>
+                        <th>거래처</th>
+                        <th>품목명</th>
+                        <th style={{ textAlign: 'right' }}>공급가액</th>
+                        <th style={{ textAlign: 'right' }}>부가세</th>
+                        <th style={{ textAlign: 'right' }}>합계금액</th>
+                        <th>공제여부</th>
+                        <th>결제구분</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {quarterPurchases.length === 0 ? (
+                        <tr>
+                          <td colSpan="9" style={{ textAlign: 'center', padding: '16px', color: 'var(--text-secondary)' }}>
+                            해당 분기에 등록된 매입 내역이 없습니다.
+                          </td>
+                        </tr>
+                      ) : (
+                        quarterPurchases.map((p) => (
+                          <tr key={p.id}>
+                            <td>{p.date}</td>
+                            <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{p.id}</td>
+                            <td style={{ fontWeight: '500' }}>{p.vendor}</td>
+                            <td>{p.itemName}</td>
+                            <td style={{ textAlign: 'right' }}>{p.supplyValue.toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '600', color: p.isDeductible !== false ? '#10b981' : '#6b7280' }}>
+                              {p.vat.toLocaleString()}
+                            </td>
+                            <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{(p.supplyValue + p.vat).toLocaleString()}</td>
+                            <td style={{ textAlign: 'center' }}>
+                              {p.isDeductible !== false ? (
+                                <span className="badge badge-green">공제대상</span>
+                              ) : (
+                                <span className="badge badge-secondary" style={{ backgroundColor: '#e5e7eb', color: '#4b5563' }}>불공제</span>
+                              )}
+                            </td>
+                            <td>{p.paymentMethod}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
