@@ -16,8 +16,8 @@ export default function FixedExpenses({
   const [fixedTab, setFixedTab] = useState('employee'); // 'employee', 'office', 'partner'
   
   // Period filter states
-  const [viewPeriodType, setViewPeriodType] = useState('month'); // 'month', 'quarter'
-  const [selectedPeriod, setSelectedPeriod] = useState('2026-06'); // default to 2026-06
+  const [viewPeriodType, setViewPeriodType] = useState('all'); // 'month', 'quarter', 'all'
+  const [selectedPeriod, setSelectedPeriod] = useState('all'); // default to 'all'
 
   const getAvailableMonths = () => {
     const months = new Set();
