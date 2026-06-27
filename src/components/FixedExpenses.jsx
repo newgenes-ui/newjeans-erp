@@ -18,7 +18,7 @@ export default function FixedExpenses({
   // Period filter states
   const [viewPeriodType, setViewPeriodType] = useState('all'); // 'month', 'quarter', 'all'
   const [selectedPeriod, setSelectedPeriod] = useState('all'); // default to 'all'
-  const [partnerQuarterFilter, setPartnerQuarterFilter] = useState('all'); // 'all', 'Q1', 'Q2', 'Q3', 'Q4'
+  const [quarterFilter, setQuarterFilter] = useState('all'); // 'all', 'Q1', 'Q2', 'Q3', 'Q4'
 
   const getAvailableMonths = () => {
     const months = new Set();
@@ -929,14 +929,23 @@ export default function FixedExpenses({
     filteredOffice = officeExpenses;
   }
 
-  const filteredPartnerExpenses = officeExpenses.filter(o => {
-    if (partnerQuarterFilter === 'all') return true;
+  const filteredEmployeesList = employees.filter(e => {
+    if (quarterFilter === 'all') return true;
+    if (quarterFilter === 'Q1') return e.month >= 1 && e.month <= 3;
+    if (quarterFilter === 'Q2') return e.month >= 4 && e.month <= 6;
+    if (quarterFilter === 'Q3') return e.month >= 7 && e.month <= 9;
+    if (quarterFilter === 'Q4') return e.month >= 10 && e.month <= 12;
+    return true;
+  });
+
+  const filteredOfficeList = officeExpenses.filter(o => {
+    if (quarterFilter === 'all') return true;
     if (!o.month) return false;
     const monthNum = parseInt(o.month.split('-')[1], 10);
-    if (partnerQuarterFilter === 'Q1') return monthNum >= 1 && monthNum <= 3;
-    if (partnerQuarterFilter === 'Q2') return monthNum >= 4 && monthNum <= 6;
-    if (partnerQuarterFilter === 'Q3') return monthNum >= 7 && monthNum <= 9;
-    if (partnerQuarterFilter === 'Q4') return monthNum >= 10 && monthNum <= 12;
+    if (quarterFilter === 'Q1') return monthNum >= 1 && monthNum <= 3;
+    if (quarterFilter === 'Q2') return monthNum >= 4 && monthNum <= 6;
+    if (quarterFilter === 'Q3') return monthNum >= 7 && monthNum <= 9;
+    if (quarterFilter === 'Q4') return monthNum >= 10 && monthNum <= 12;
     return true;
   });
 
@@ -1158,12 +1167,31 @@ export default function FixedExpenses({
 
         {/* --- TAB 1: 직원별 고정 지출 --- */}
         {fixedTab === 'employee' && (() => {
-          const sortedEmployees = [...employees].sort((a, b) => b.month - a.month || a.name.localeCompare(b.name));
+          const sortedEmployees = [...filteredEmployeesList].sort((a, b) => b.month - a.month || a.name.localeCompare(b.name));
+          const tabEmployeesSalary = filteredEmployeesList.reduce((acc, curr) => acc + curr.baseSalary, 0);
+          const tabEmployeesInsurances = filteredEmployeesList.reduce((acc, curr) => acc + (curr.insurancesTotal || (curr.pension + curr.health + curr.employment) || 0), 0);
+          const tabEmployeesCard = filteredEmployeesList.reduce((acc, curr) => acc + (curr.cardUsage || 0), 0);
           return (
             <div>
               <div className="panel-header" style={{ marginBottom: '16px' }}>
                 <h3 className="panel-title" style={{ fontSize: '15px' }}>직원별 급여, 4대보험 및 법인카드 지출대장</h3>
-                <div className="btn-group">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>분기:</span>
+                    <select 
+                      className="form-control"
+                      style={{ padding: '6px 12px', fontSize: '13px', minWidth: '140px', height: '36px', borderRadius: '6px' }}
+                      value={quarterFilter}
+                      onChange={(e) => setQuarterFilter(e.target.value)}
+                    >
+                      <option value="all">전체 분기</option>
+                      <option value="Q1">1분기 (1월~3월)</option>
+                      <option value="Q2">2분기 (4월~6월)</option>
+                      <option value="Q3">3분기 (7월~9월)</option>
+                      <option value="Q4">4분기 (10월~12월)</option>
+                    </select>
+                  </div>
+                  <div className="btn-group">
                   <button 
                     className="btn btn-secondary"
                     onClick={() => {
@@ -1209,6 +1237,7 @@ export default function FixedExpenses({
                   </button>
                 </div>
               </div>
+            </div>
 
               <div className="table-responsive">
                 <table className="erp-table">
@@ -1310,14 +1339,14 @@ export default function FixedExpenses({
                   <tfoot>
                     <tr style={{ fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.05)' }}>
                       <td colSpan="3" style={{ textAlign: 'center' }}>총합계</td>
-                      <td style={{ textAlign: 'right' }}>{totalEmployeesSalary.toLocaleString()}</td>
-                      <td style={{ textAlign: 'right' }}>{totalEmployeesInsurances.toLocaleString()}</td>
-                      <td style={{ textAlign: 'right', color: '#be123c' }}>{totalEmployeesCard.toLocaleString()}</td>
+                      <td style={{ textAlign: 'right' }}>{tabEmployeesSalary.toLocaleString()}</td>
+                      <td style={{ textAlign: 'right' }}>{tabEmployeesInsurances.toLocaleString()}</td>
+                      <td style={{ textAlign: 'right', color: '#be123c' }}>{tabEmployeesCard.toLocaleString()}</td>
                       <td style={{ textAlign: 'right' }}>
-                        {(totalEmployeesSalary + totalEmployeesInsurances + totalEmployeesCard).toLocaleString()}
+                        {(tabEmployeesSalary + tabEmployeesInsurances + tabEmployeesCard).toLocaleString()}
                       </td>
                       <td style={{ textAlign: 'right', color: 'var(--primary-blue)' }}>
-                        {(totalEmployeesSalary + totalEmployeesInsurances + totalEmployeesCard).toLocaleString()}
+                        {(tabEmployeesSalary + tabEmployeesInsurances + tabEmployeesCard).toLocaleString()}
                       </td>
                       <td></td>
                     </tr>
@@ -1333,28 +1362,45 @@ export default function FixedExpenses({
           <div>
             <div className="panel-header" style={{ marginBottom: '16px' }}>
               <h3 className="panel-title" style={{ fontSize: '15px' }}>사무실 월별 고정비용 기록대장</h3>
-              <div className="btn-group">
-                <button 
-                  className="btn btn-primary"
-                  onClick={() => {
-                    setEditingOffice(null);
-                    const latest = officeExpenses.length > 0 ? officeExpenses[0] : {};
-                    setOfficeForm({
-                      month: new Date().toISOString().substring(0, 7),
-                      officeTax: latest.officeTax || 0,
-                      officePhone: latest.officePhone || 0,
-                      avanteRental: latest.avanteRental || 0,
-                      rayInstallment: latest.rayInstallment || 0,
-                      smallBizLoanInterest: latest.smallBizLoanInterest || 0,
-                      ibkLoanInterest: latest.ibkLoanInterest || 0,
-                      kiboLoanInterest: latest.kiboLoanInterest || 0,
-                      creditLoanInterest: latest.creditLoanInterest || 0
-                    });
-                    setShowOfficeModal(true);
-                  }}
-                >
-                  + 고정 지출 등록
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>분기:</span>
+                  <select 
+                    className="form-control"
+                    style={{ padding: '6px 12px', fontSize: '13px', minWidth: '140px', height: '36px', borderRadius: '6px' }}
+                    value={quarterFilter}
+                    onChange={(e) => setQuarterFilter(e.target.value)}
+                  >
+                    <option value="all">전체 분기</option>
+                    <option value="Q1">1분기 (1월~3월)</option>
+                    <option value="Q2">2분기 (4월~6월)</option>
+                    <option value="Q3">3분기 (7월~9월)</option>
+                    <option value="Q4">4분기 (10월~12월)</option>
+                  </select>
+                </div>
+                <div className="btn-group">
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setEditingOffice(null);
+                      const latest = officeExpenses.length > 0 ? officeExpenses[0] : {};
+                      setOfficeForm({
+                        month: new Date().toISOString().substring(0, 7),
+                        officeTax: latest.officeTax || 0,
+                        officePhone: latest.officePhone || 0,
+                        avanteRental: latest.avanteRental || 0,
+                        rayInstallment: latest.rayInstallment || 0,
+                        smallBizLoanInterest: latest.smallBizLoanInterest || 0,
+                        ibkLoanInterest: latest.ibkLoanInterest || 0,
+                        kiboLoanInterest: latest.kiboLoanInterest || 0,
+                        creditLoanInterest: latest.creditLoanInterest || 0
+                      });
+                      setShowOfficeModal(true);
+                    }}
+                  >
+                    + 고정 지출 등록
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1376,14 +1422,16 @@ export default function FixedExpenses({
                   </tr>
                 </thead>
                 <tbody>
-                  {officeExpenses.length === 0 ? (
+                  {filteredOfficeList.length === 0 ? (
                     <tr>
                       <td colSpan="11" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
-                        등록된 월별 고정 지출 내역이 없습니다.
+                        {quarterFilter === 'all' 
+                          ? '등록된 월별 고정 지출 내역이 없습니다.' 
+                          : '선택한 분기에 등록된 월별 고정 지출 내역이 없습니다.'}
                       </td>
                     </tr>
                   ) : (
-                    officeExpenses.map(o => {
+                    filteredOfficeList.map(o => {
                       const rowSum = (o.officeTax || 0) + (o.officePhone || 0) + 
                         (o.avanteRental || 0) + (o.rayInstallment || 0) + 
                         (o.smallBizLoanInterest || 0) + (o.ibkLoanInterest || 0) + 
@@ -1437,6 +1485,26 @@ export default function FixedExpenses({
                     })
                   )}
                 </tbody>
+                <tfoot>
+                  <tr style={{ fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.05)' }}>
+                    <td>총합계</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.officeTax || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.officePhone || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.avanteRental || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.rayInstallment || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right', color: '#b45309' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.smallBizLoanInterest || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right', color: '#b45309' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.ibkLoanInterest || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right', color: '#b45309' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.kiboLoanInterest || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right', color: '#b45309' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.creditLoanInterest || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-blue)' }}>
+                      {filteredOfficeList.reduce((sum, o) => sum + (o.officeTax || 0) + (o.officePhone || 0) + 
+                        (o.avanteRental || 0) + (o.rayInstallment || 0) + 
+                        (o.smallBizLoanInterest || 0) + (o.ibkLoanInterest || 0) + 
+                        (o.kiboLoanInterest || 0) + (o.creditLoanInterest || 0), 0).toLocaleString()}
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
@@ -1449,12 +1517,12 @@ export default function FixedExpenses({
               <h3 className="panel-title" style={{ fontSize: '15px' }}>월별 주요 거래처/협력사 고정비용 기록대장</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>분기 필터:</span>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>분기:</span>
                   <select 
                     className="form-control"
                     style={{ padding: '6px 12px', fontSize: '13px', minWidth: '140px', height: '36px', borderRadius: '6px' }}
-                    value={partnerQuarterFilter}
-                    onChange={(e) => setPartnerQuarterFilter(e.target.value)}
+                    value={quarterFilter}
+                    onChange={(e) => setQuarterFilter(e.target.value)}
                   >
                     <option value="all">전체 분기</option>
                     <option value="Q1">1분기 (1월~3월)</option>
@@ -1524,16 +1592,16 @@ export default function FixedExpenses({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPartnerExpenses.length === 0 ? (
+                  {filteredOfficeList.length === 0 ? (
                     <tr>
                       <td colSpan="13" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
-                        {partnerQuarterFilter === 'all' 
+                        {quarterFilter === 'all' 
                           ? '등록된 거래처별 고정 지출 내역이 없습니다.' 
                           : '선택한 분기에 등록된 거래처별 고정 지출 내역이 없습니다.'}
                       </td>
                     </tr>
                   ) : (
-                    filteredPartnerExpenses.map(o => {
+                    filteredOfficeList.map(o => {
                       const rowSum = 
                         (o.samsungOA || 0) + (o.sungjin || 0) + (o.gwangmyeongG || 0) + 
                         (o.taxService || 0) + (o.taxCorp || 0) + (o.ecount || 0) + (o.bsTech || 0) + 
@@ -1591,6 +1659,28 @@ export default function FixedExpenses({
                     })
                   )}
                 </tbody>
+                <tfoot>
+                  <tr style={{ fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.05)' }}>
+                    <td>총합계</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.samsungOA || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.sungjin || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.gwangmyeongG || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.taxService || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.taxCorp || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.ecount || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.bsTech || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.chungho || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.kt || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{filteredOfficeList.reduce((sum, o) => sum + (o.skt || 0), 0).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary-blue)' }}>
+                      {filteredOfficeList.reduce((sum, o) => sum + 
+                        (o.samsungOA || 0) + (o.sungjin || 0) + (o.gwangmyeongG || 0) + 
+                        (o.taxService || 0) + (o.taxCorp || 0) + (o.ecount || 0) + (o.bsTech || 0) + 
+                        (o.chungho || 0) + (o.kt || 0) + (o.skt || 0), 0).toLocaleString()}
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
