@@ -18,6 +18,7 @@ export default function FixedExpenses({
   // Period filter states
   const [viewPeriodType, setViewPeriodType] = useState('all'); // 'month', 'quarter', 'all'
   const [selectedPeriod, setSelectedPeriod] = useState('all'); // default to 'all'
+  const [partnerQuarterFilter, setPartnerQuarterFilter] = useState('all'); // 'all', 'Q1', 'Q2', 'Q3', 'Q4'
 
   const getAvailableMonths = () => {
     const months = new Set();
@@ -928,6 +929,17 @@ export default function FixedExpenses({
     filteredOffice = officeExpenses;
   }
 
+  const filteredPartnerExpenses = officeExpenses.filter(o => {
+    if (partnerQuarterFilter === 'all') return true;
+    if (!o.month) return false;
+    const monthNum = parseInt(o.month.split('-')[1], 10);
+    if (partnerQuarterFilter === 'Q1') return monthNum >= 1 && monthNum <= 3;
+    if (partnerQuarterFilter === 'Q2') return monthNum >= 4 && monthNum <= 6;
+    if (partnerQuarterFilter === 'Q3') return monthNum >= 7 && monthNum <= 9;
+    if (partnerQuarterFilter === 'Q4') return monthNum >= 10 && monthNum <= 12;
+    return true;
+  });
+
   // Calculate total fixed expenses for a given period to display in the filter options
   const calculateTotalForPeriod = (periodType, periodValue) => {
     let targetEmployees = [];
@@ -1435,13 +1447,29 @@ export default function FixedExpenses({
           <div>
             <div className="panel-header" style={{ marginBottom: '16px' }}>
               <h3 className="panel-title" style={{ fontSize: '15px' }}>월별 주요 거래처/협력사 고정비용 기록대장</h3>
-              <div className="btn-group">
-                <button 
-                  className="btn btn-secondary"
-                  onClick={() => document.getElementById('partnerCsvFile').click()}
-                >
-                  📄 국세청 비용 CSV 가져오기
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>분기 필터:</span>
+                  <select 
+                    className="form-control"
+                    style={{ padding: '6px 12px', fontSize: '13px', minWidth: '140px', height: '36px', borderRadius: '6px' }}
+                    value={partnerQuarterFilter}
+                    onChange={(e) => setPartnerQuarterFilter(e.target.value)}
+                  >
+                    <option value="all">전체 분기</option>
+                    <option value="Q1">1분기 (1월~3월)</option>
+                    <option value="Q2">2분기 (4월~6월)</option>
+                    <option value="Q3">3분기 (7월~9월)</option>
+                    <option value="Q4">4분기 (10월~12월)</option>
+                  </select>
+                </div>
+                <div className="btn-group">
+                  <button 
+                    className="btn btn-secondary"
+                    onClick={() => document.getElementById('partnerCsvFile').click()}
+                  >
+                    📄 국세청 비용 CSV 가져오기
+                  </button>
                 <input 
                   type="file" 
                   id="partnerCsvFile" 
@@ -1474,6 +1502,7 @@ export default function FixedExpenses({
                 </button>
               </div>
             </div>
+          </div>
 
             <div className="table-responsive">
               <table className="erp-table" style={{ fontSize: '11px' }}>
@@ -1495,14 +1524,16 @@ export default function FixedExpenses({
                   </tr>
                 </thead>
                 <tbody>
-                  {officeExpenses.length === 0 ? (
+                  {filteredPartnerExpenses.length === 0 ? (
                     <tr>
                       <td colSpan="13" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
-                        등록된 거래처별 고정 지출 내역이 없습니다.
+                        {partnerQuarterFilter === 'all' 
+                          ? '등록된 거래처별 고정 지출 내역이 없습니다.' 
+                          : '선택한 분기에 등록된 거래처별 고정 지출 내역이 없습니다.'}
                       </td>
                     </tr>
                   ) : (
-                    officeExpenses.map(o => {
+                    filteredPartnerExpenses.map(o => {
                       const rowSum = 
                         (o.samsungOA || 0) + (o.sungjin || 0) + (o.gwangmyeongG || 0) + 
                         (o.taxService || 0) + (o.taxCorp || 0) + (o.ecount || 0) + (o.bsTech || 0) + 
